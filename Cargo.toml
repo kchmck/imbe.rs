@@ -1,0 +1,9 @@
+[package]
+name = "imbe"
+version = "0.1.0"
+authors = ["Mick Koch <mick@kochm.co>"]
+
+[dependencies]
+arrayvec = "0.3.12"
+num = "0.1.29"
+collect_slice = "1.0.0"
