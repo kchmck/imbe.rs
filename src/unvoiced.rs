@@ -102,42 +102,32 @@ impl UnvoicedParts {
     }
 }
 
-pub struct Unvoiced<'a, 'b> {
-    sample: Range<usize>,
-    window: window::Window,
-    prev: &'a UnvoicedParts,
-    cur: &'b UnvoicedParts,
-}
-
-impl<'a, 'b> Unvoiced<'a, 'b> {
-    pub fn new(cur: &'b UnvoicedParts, prev: &'a UnvoicedParts) -> Unvoiced<'a, 'b> {
-        Unvoiced {
-            sample: 0..SAMPLES+1,
-            window: window::synthesis_full(),
-            cur: cur,
-            prev: prev,
-        }
-    }
-
-    fn eval(&self, sample: isize) -> f32 {
-        let numer = self.window.get(sample) * self.prev.idft(sample) +
-            self.window.get(sample - SAMPLES as isize) * self.cur.idft(sample - SAMPLES as isize);
-        let denom = self.window.get(sample).powi(2) +
-            self.window.get(sample - SAMPLES as isize).powi(2);
-
-        numer / denom
+impl Default for UnvoicedParts {
+    fn default() -> UnvoicedParts {
+        UnvoicedParts([Complex32::new(0.0, 0.0); 256])
     }
 }
 
-impl<'a, 'b> Iterator for Unvoiced<'a, 'b> {
-    type Item = f32;
+pub struct Unvoiced([f32; SAMPLES]);
 
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.sample.next() {
-            Some(sample) => Some(self.eval(sample as isize)),
-            None => None,
-        }
+impl Unvoiced {
+    pub fn new(cur: &UnvoicedParts, prev: &UnvoicedParts) -> Unvoiced {
+        let mut unvoiced = [0.0; SAMPLES];
+        let window = window::synthesis_full();
+
+        (0..SAMPLES as isize).map(|n| {
+            let numer = window.get(n) * prev.idft(n) +
+                window.get(n - SAMPLES as isize) * cur.idft(n - SAMPLES as isize);
+            let denom = window.get(n).powi(2) +
+                window.get(n - SAMPLES as isize).powi(2);
+
+            numer / denom
+        }).collect_slice_checked(&mut unvoiced[..]);
+
+        Unvoiced(unvoiced)
     }
+
+    pub fn get(&self, n: usize) -> f32 { self.0[n] }
 }
 
 #[cfg(test)]
@@ -887,165 +877,165 @@ mod test {
         let parts = UnvoicedParts::new(&dft, &p, &voice, &s);
         let u = Unvoiced::new(&parts, &parts);
 
-        assert!((u.eval(0) - -10.78672773).abs() < 0.1);
-        assert!((u.eval(1) - -20.38247464).abs() < 0.1);
-        assert!((u.eval(2) - 36.34924449).abs() < 0.1);
-        assert!((u.eval(3) - 22.10862316).abs() < 0.1);
-        assert!((u.eval(4) - -28.15892880).abs() < 0.1);
-        assert!((u.eval(5) - 1.26585774).abs() < 0.1);
-        assert!((u.eval(6) - 8.29548529).abs() < 0.1);
-        assert!((u.eval(7) - -37.32592318).abs() < 0.1);
-        assert!((u.eval(8) - -2.38641534).abs() < 0.1);
-        assert!((u.eval(9) - 39.03278393).abs() < 0.1);
-        assert!((u.eval(10) - -4.53718360).abs() < 0.1);
-        assert!((u.eval(11) - 1.00653030).abs() < 0.1);
-        assert!((u.eval(12) - 28.29558432).abs() < 0.1);
-        assert!((u.eval(13) - -32.32720506).abs() < 0.1);
-        assert!((u.eval(14) - -35.78007419).abs() < 0.1);
-        assert!((u.eval(15) - 23.47296407).abs() < 0.1);
-        assert!((u.eval(16) - -7.50319279).abs() < 0.1);
-        assert!((u.eval(17) - -4.56669882).abs() < 0.1);
-        assert!((u.eval(18) - 61.67557092).abs() < 0.1);
-        assert!((u.eval(19) - 2.58401083).abs() < 0.1);
-        assert!((u.eval(20) - -54.33887744).abs() < 0.1);
-        assert!((u.eval(21) - 8.45111307).abs() < 0.1);
-        assert!((u.eval(22) - -8.41016845).abs() < 0.1);
-        assert!((u.eval(23) - -45.46104310).abs() < 0.1);
-        assert!((u.eval(24) - 47.93722226).abs() < 0.1);
-        assert!((u.eval(25) - 60.94331766).abs() < 0.1);
-        assert!((u.eval(26) - -32.98283133).abs() < 0.1);
-        assert!((u.eval(27) - -13.33703293).abs() < 0.1);
-        assert!((u.eval(28) - 13.37965781).abs() < 0.1);
-        assert!((u.eval(29) - -52.48454058).abs() < 0.1);
-        assert!((u.eval(30) - -20.67155015).abs() < 0.1);
-        assert!((u.eval(31) - 63.73105350).abs() < 0.1);
-        assert!((u.eval(32) - 18.06583597).abs() < 0.1);
-        assert!((u.eval(33) - -23.93905051).abs() < 0.1);
-        assert!((u.eval(34) - 20.94158838).abs() < 0.1);
-        assert!((u.eval(35) - -7.67853185).abs() < 0.1);
-        assert!((u.eval(36) - -56.08384708).abs() < 0.1);
-        assert!((u.eval(37) - 12.36090374).abs() < 0.1);
-        assert!((u.eval(38) - 42.37205721).abs() < 0.1);
-        assert!((u.eval(39) - -19.98470969).abs() < 0.1);
-        assert!((u.eval(40) - 3.27695989).abs() < 0.1);
-        assert!((u.eval(41) - 37.29797601).abs() < 0.1);
-        assert!((u.eval(42) - -34.98240265).abs() < 0.1);
-        assert!((u.eval(43) - -32.57432802).abs() < 0.1);
-        assert!((u.eval(44) - 39.63282676).abs() < 0.1);
-        assert!((u.eval(45) - -5.32238891).abs() < 0.1);
-        assert!((u.eval(46) - -31.48791066).abs() < 0.1);
-        assert!((u.eval(47) - 42.58494771).abs() < 0.1);
-        assert!((u.eval(48) - 14.05462803).abs() < 0.1);
-        assert!((u.eval(49) - -47.67627480).abs() < 0.1);
-        assert!((u.eval(50) - 15.92570804).abs() < 0.1);
-        assert!((u.eval(51) - 27.20430115).abs() < 0.1);
-        assert!((u.eval(52) - -42.43731851).abs() < 0.1);
-        assert!((u.eval(53) - -1.55333517).abs() < 0.1);
-        assert!((u.eval(54) - 43.08442969).abs() < 0.1);
-        assert!((u.eval(55) - -23.08501026).abs() < 0.1);
-        assert!((u.eval(56) - -21.85670971).abs() < 0.1);
-        assert!((u.eval(57) - 42.39680460).abs() < 0.1);
-        assert!((u.eval(58) - -1.87294999).abs() < 0.1);
-        assert!((u.eval(59) - -39.55023096).abs() < 0.1);
-        assert!((u.eval(60) - 22.52716559).abs() < 0.1);
-        assert!((u.eval(61) - 12.31471496).abs() < 0.1);
-        assert!((u.eval(62) - -42.46277687).abs() < 0.1);
-        assert!((u.eval(63) - 13.45364723).abs() < 0.1);
-        assert!((u.eval(64) - 44.55797573).abs() < 0.1);
-        assert!((u.eval(65) - -19.90959348).abs() < 0.1);
-        assert!((u.eval(66) - -11.37754789).abs() < 0.1);
-        assert!((u.eval(67) - 21.59135817).abs() < 0.1);
-        assert!((u.eval(68) - -30.00450175).abs() < 0.1);
-        assert!((u.eval(69) - -28.56917243).abs() < 0.1);
-        assert!((u.eval(70) - 32.97956090).abs() < 0.1);
-        assert!((u.eval(71) - 20.67055244).abs() < 0.1);
-        assert!((u.eval(72) - -3.09840552).abs() < 0.1);
-        assert!((u.eval(73) - 9.22722646).abs() < 0.1);
-        assert!((u.eval(74) - -8.90701539).abs() < 0.1);
-        assert!((u.eval(75) - -26.59607068).abs() < 0.1);
-        assert!((u.eval(76) - -11.30633646).abs() < 0.1);
-        assert!((u.eval(77) - 9.19103214).abs() < 0.1);
-        assert!((u.eval(78) - 24.08560283).abs() < 0.1);
-        assert!((u.eval(79) - 9.91485620).abs() < 0.1);
-        assert!((u.eval(80) - -6.50279736).abs() < 0.1);
-        assert!((u.eval(81) - 4.28217570).abs() < 0.1);
-        assert!((u.eval(82) - -15.28169988).abs() < 0.1);
-        assert!((u.eval(83) - -28.01218814).abs() < 0.1);
-        assert!((u.eval(84) - 17.40110976).abs() < 0.1);
-        assert!((u.eval(85) - 17.03009610).abs() < 0.1);
-        assert!((u.eval(86) - -12.52787223).abs() < 0.1);
-        assert!((u.eval(87) - 20.68220241).abs() < 0.1);
-        assert!((u.eval(88) - 13.46080685).abs() < 0.1);
-        assert!((u.eval(89) - -37.68500544).abs() < 0.1);
-        assert!((u.eval(90) - -4.29989334).abs() < 0.1);
-        assert!((u.eval(91) - 19.36130905).abs() < 0.1);
-        assert!((u.eval(92) - -24.21556118).abs() < 0.1);
-        assert!((u.eval(93) - 3.06827405).abs() < 0.1);
-        assert!((u.eval(94) - 42.99834610).abs() < 0.1);
-        assert!((u.eval(95) - -10.46488654).abs() < 0.1);
-        assert!((u.eval(96) - -24.23670370).abs() < 0.1);
-        assert!((u.eval(97) - 19.01862304).abs() < 0.1);
-        assert!((u.eval(98) - -9.91875934).abs() < 0.1);
-        assert!((u.eval(99) - -34.28454629).abs() < 0.1);
-        assert!((u.eval(100) - 19.18018540).abs() < 0.1);
-        assert!((u.eval(101) - 30.35588910).abs() < 0.1);
-        assert!((u.eval(102) - -8.43820560).abs() < 0.1);
-        assert!((u.eval(103) - 0.48692814).abs() < 0.1);
-        assert!((u.eval(104) - 12.23854716).abs() < 0.1);
-        assert!((u.eval(105) - -21.82736521).abs() < 0.1);
-        assert!((u.eval(106) - -29.15495045).abs() < 0.1);
-        assert!((u.eval(107) - 9.83596318).abs() < 0.1);
-        assert!((u.eval(108) - 23.97022383).abs() < 0.1);
-        assert!((u.eval(109) - 6.66392125).abs() < 0.1);
-        assert!((u.eval(110) - 7.57935615).abs() < 0.1);
-        assert!((u.eval(111) - 8.83441304).abs() < 0.1);
-        assert!((u.eval(112) - -21.85346156).abs() < 0.1);
-        assert!((u.eval(113) - -33.31551231).abs() < 0.1);
-        assert!((u.eval(114) - 1.48361254).abs() < 0.1);
-        assert!((u.eval(115) - 21.28575517).abs() < 0.1);
-        assert!((u.eval(116) - 12.04514954).abs() < 0.1);
-        assert!((u.eval(117) - 13.92062457).abs() < 0.1);
-        assert!((u.eval(118) - 9.29144790).abs() < 0.1);
-        assert!((u.eval(119) - -20.00954053).abs() < 0.1);
-        assert!((u.eval(120) - -29.53746184).abs() < 0.1);
-        assert!((u.eval(121) - -5.43448076).abs() < 0.1);
-        assert!((u.eval(122) - 10.76036684).abs() < 0.1);
-        assert!((u.eval(123) - 12.84723250).abs() < 0.1);
-        assert!((u.eval(124) - 20.64713636).abs() < 0.1);
-        assert!((u.eval(125) - 11.14764130).abs() < 0.1);
-        assert!((u.eval(126) - -18.20908302).abs() < 0.1);
-        assert!((u.eval(127) - -19.61802293).abs() < 0.1);
-        assert!((u.eval(128) - -8.19806102).abs() < 0.1);
-        assert!((u.eval(129) - -11.74537548).abs() < 0.1);
-        assert!((u.eval(130) - 14.92574659).abs() < 0.1);
-        assert!((u.eval(131) - 37.24382873).abs() < 0.1);
-        assert!((u.eval(132) - -2.25353612).abs() < 0.1);
-        assert!((u.eval(133) - -12.97207479).abs() < 0.1);
-        assert!((u.eval(134) - 7.91625844).abs() < 0.1);
-        assert!((u.eval(135) - -31.59942016).abs() < 0.1);
-        assert!((u.eval(136) - -29.35035223).abs() < 0.1);
-        assert!((u.eval(137) - 41.27631878).abs() < 0.1);
-        assert!((u.eval(138) - 19.89886234).abs() < 0.1);
-        assert!((u.eval(139) - -17.59164273).abs() < 0.1);
-        assert!((u.eval(140) - 26.07102151).abs() < 0.1);
-        assert!((u.eval(141) - -0.08594049).abs() < 0.1);
-        assert!((u.eval(142) - -51.18277665).abs() < 0.1);
-        assert!((u.eval(143) - 5.22913077).abs() < 0.1);
-        assert!((u.eval(144) - 22.92406853).abs() < 0.1);
-        assert!((u.eval(145) - -16.16033735).abs() < 0.1);
-        assert!((u.eval(146) - 17.72598191).abs() < 0.1);
-        assert!((u.eval(147) - 22.18516070).abs() < 0.1);
-        assert!((u.eval(148) - -25.11108388).abs() < 0.1);
-        assert!((u.eval(149) - -1.18699777).abs() < 0.1);
-        assert!((u.eval(150) - 9.03229592).abs() < 0.1);
-        assert!((u.eval(151) - -26.45728235).abs() < 0.1);
-        assert!((u.eval(152) - 4.56024994).abs() < 0.1);
-        assert!((u.eval(153) - 22.08178310).abs() < 0.1);
-        assert!((u.eval(154) - -17.59171648).abs() < 0.1);
-        assert!((u.eval(155) - 7.02802722).abs() < 0.1);
-        assert!((u.eval(156) - 31.28951287).abs() < 0.1);
-        assert!((u.eval(157) - -22.50191079).abs() < 0.1);
-        assert!((u.eval(158) - -23.46011347).abs() < 0.1);
-        assert!((u.eval(159) - 19.15931422).abs() < 0.1);
+        assert!((u.get(0) - -10.78672773).abs() < 0.1);
+        assert!((u.get(1) - -20.38247464).abs() < 0.1);
+        assert!((u.get(2) - 36.34924449).abs() < 0.1);
+        assert!((u.get(3) - 22.10862316).abs() < 0.1);
+        assert!((u.get(4) - -28.15892880).abs() < 0.1);
+        assert!((u.get(5) - 1.26585774).abs() < 0.1);
+        assert!((u.get(6) - 8.29548529).abs() < 0.1);
+        assert!((u.get(7) - -37.32592318).abs() < 0.1);
+        assert!((u.get(8) - -2.38641534).abs() < 0.1);
+        assert!((u.get(9) - 39.03278393).abs() < 0.1);
+        assert!((u.get(10) - -4.53718360).abs() < 0.1);
+        assert!((u.get(11) - 1.00653030).abs() < 0.1);
+        assert!((u.get(12) - 28.29558432).abs() < 0.1);
+        assert!((u.get(13) - -32.32720506).abs() < 0.1);
+        assert!((u.get(14) - -35.78007419).abs() < 0.1);
+        assert!((u.get(15) - 23.47296407).abs() < 0.1);
+        assert!((u.get(16) - -7.50319279).abs() < 0.1);
+        assert!((u.get(17) - -4.56669882).abs() < 0.1);
+        assert!((u.get(18) - 61.67557092).abs() < 0.1);
+        assert!((u.get(19) - 2.58401083).abs() < 0.1);
+        assert!((u.get(20) - -54.33887744).abs() < 0.1);
+        assert!((u.get(21) - 8.45111307).abs() < 0.1);
+        assert!((u.get(22) - -8.41016845).abs() < 0.1);
+        assert!((u.get(23) - -45.46104310).abs() < 0.1);
+        assert!((u.get(24) - 47.93722226).abs() < 0.1);
+        assert!((u.get(25) - 60.94331766).abs() < 0.1);
+        assert!((u.get(26) - -32.98283133).abs() < 0.1);
+        assert!((u.get(27) - -13.33703293).abs() < 0.1);
+        assert!((u.get(28) - 13.37965781).abs() < 0.1);
+        assert!((u.get(29) - -52.48454058).abs() < 0.1);
+        assert!((u.get(30) - -20.67155015).abs() < 0.1);
+        assert!((u.get(31) - 63.73105350).abs() < 0.1);
+        assert!((u.get(32) - 18.06583597).abs() < 0.1);
+        assert!((u.get(33) - -23.93905051).abs() < 0.1);
+        assert!((u.get(34) - 20.94158838).abs() < 0.1);
+        assert!((u.get(35) - -7.67853185).abs() < 0.1);
+        assert!((u.get(36) - -56.08384708).abs() < 0.1);
+        assert!((u.get(37) - 12.36090374).abs() < 0.1);
+        assert!((u.get(38) - 42.37205721).abs() < 0.1);
+        assert!((u.get(39) - -19.98470969).abs() < 0.1);
+        assert!((u.get(40) - 3.27695989).abs() < 0.1);
+        assert!((u.get(41) - 37.29797601).abs() < 0.1);
+        assert!((u.get(42) - -34.98240265).abs() < 0.1);
+        assert!((u.get(43) - -32.57432802).abs() < 0.1);
+        assert!((u.get(44) - 39.63282676).abs() < 0.1);
+        assert!((u.get(45) - -5.32238891).abs() < 0.1);
+        assert!((u.get(46) - -31.48791066).abs() < 0.1);
+        assert!((u.get(47) - 42.58494771).abs() < 0.1);
+        assert!((u.get(48) - 14.05462803).abs() < 0.1);
+        assert!((u.get(49) - -47.67627480).abs() < 0.1);
+        assert!((u.get(50) - 15.92570804).abs() < 0.1);
+        assert!((u.get(51) - 27.20430115).abs() < 0.1);
+        assert!((u.get(52) - -42.43731851).abs() < 0.1);
+        assert!((u.get(53) - -1.55333517).abs() < 0.1);
+        assert!((u.get(54) - 43.08442969).abs() < 0.1);
+        assert!((u.get(55) - -23.08501026).abs() < 0.1);
+        assert!((u.get(56) - -21.85670971).abs() < 0.1);
+        assert!((u.get(57) - 42.39680460).abs() < 0.1);
+        assert!((u.get(58) - -1.87294999).abs() < 0.1);
+        assert!((u.get(59) - -39.55023096).abs() < 0.1);
+        assert!((u.get(60) - 22.52716559).abs() < 0.1);
+        assert!((u.get(61) - 12.31471496).abs() < 0.1);
+        assert!((u.get(62) - -42.46277687).abs() < 0.1);
+        assert!((u.get(63) - 13.45364723).abs() < 0.1);
+        assert!((u.get(64) - 44.55797573).abs() < 0.1);
+        assert!((u.get(65) - -19.90959348).abs() < 0.1);
+        assert!((u.get(66) - -11.37754789).abs() < 0.1);
+        assert!((u.get(67) - 21.59135817).abs() < 0.1);
+        assert!((u.get(68) - -30.00450175).abs() < 0.1);
+        assert!((u.get(69) - -28.56917243).abs() < 0.1);
+        assert!((u.get(70) - 32.97956090).abs() < 0.1);
+        assert!((u.get(71) - 20.67055244).abs() < 0.1);
+        assert!((u.get(72) - -3.09840552).abs() < 0.1);
+        assert!((u.get(73) - 9.22722646).abs() < 0.1);
+        assert!((u.get(74) - -8.90701539).abs() < 0.1);
+        assert!((u.get(75) - -26.59607068).abs() < 0.1);
+        assert!((u.get(76) - -11.30633646).abs() < 0.1);
+        assert!((u.get(77) - 9.19103214).abs() < 0.1);
+        assert!((u.get(78) - 24.08560283).abs() < 0.1);
+        assert!((u.get(79) - 9.91485620).abs() < 0.1);
+        assert!((u.get(80) - -6.50279736).abs() < 0.1);
+        assert!((u.get(81) - 4.28217570).abs() < 0.1);
+        assert!((u.get(82) - -15.28169988).abs() < 0.1);
+        assert!((u.get(83) - -28.01218814).abs() < 0.1);
+        assert!((u.get(84) - 17.40110976).abs() < 0.1);
+        assert!((u.get(85) - 17.03009610).abs() < 0.1);
+        assert!((u.get(86) - -12.52787223).abs() < 0.1);
+        assert!((u.get(87) - 20.68220241).abs() < 0.1);
+        assert!((u.get(88) - 13.46080685).abs() < 0.1);
+        assert!((u.get(89) - -37.68500544).abs() < 0.1);
+        assert!((u.get(90) - -4.29989334).abs() < 0.1);
+        assert!((u.get(91) - 19.36130905).abs() < 0.1);
+        assert!((u.get(92) - -24.21556118).abs() < 0.1);
+        assert!((u.get(93) - 3.06827405).abs() < 0.1);
+        assert!((u.get(94) - 42.99834610).abs() < 0.1);
+        assert!((u.get(95) - -10.46488654).abs() < 0.1);
+        assert!((u.get(96) - -24.23670370).abs() < 0.1);
+        assert!((u.get(97) - 19.01862304).abs() < 0.1);
+        assert!((u.get(98) - -9.91875934).abs() < 0.1);
+        assert!((u.get(99) - -34.28454629).abs() < 0.1);
+        assert!((u.get(100) - 19.18018540).abs() < 0.1);
+        assert!((u.get(101) - 30.35588910).abs() < 0.1);
+        assert!((u.get(102) - -8.43820560).abs() < 0.1);
+        assert!((u.get(103) - 0.48692814).abs() < 0.1);
+        assert!((u.get(104) - 12.23854716).abs() < 0.1);
+        assert!((u.get(105) - -21.82736521).abs() < 0.1);
+        assert!((u.get(106) - -29.15495045).abs() < 0.1);
+        assert!((u.get(107) - 9.83596318).abs() < 0.1);
+        assert!((u.get(108) - 23.97022383).abs() < 0.1);
+        assert!((u.get(109) - 6.66392125).abs() < 0.1);
+        assert!((u.get(110) - 7.57935615).abs() < 0.1);
+        assert!((u.get(111) - 8.83441304).abs() < 0.1);
+        assert!((u.get(112) - -21.85346156).abs() < 0.1);
+        assert!((u.get(113) - -33.31551231).abs() < 0.1);
+        assert!((u.get(114) - 1.48361254).abs() < 0.1);
+        assert!((u.get(115) - 21.28575517).abs() < 0.1);
+        assert!((u.get(116) - 12.04514954).abs() < 0.1);
+        assert!((u.get(117) - 13.92062457).abs() < 0.1);
+        assert!((u.get(118) - 9.29144790).abs() < 0.1);
+        assert!((u.get(119) - -20.00954053).abs() < 0.1);
+        assert!((u.get(120) - -29.53746184).abs() < 0.1);
+        assert!((u.get(121) - -5.43448076).abs() < 0.1);
+        assert!((u.get(122) - 10.76036684).abs() < 0.1);
+        assert!((u.get(123) - 12.84723250).abs() < 0.1);
+        assert!((u.get(124) - 20.64713636).abs() < 0.1);
+        assert!((u.get(125) - 11.14764130).abs() < 0.1);
+        assert!((u.get(126) - -18.20908302).abs() < 0.1);
+        assert!((u.get(127) - -19.61802293).abs() < 0.1);
+        assert!((u.get(128) - -8.19806102).abs() < 0.1);
+        assert!((u.get(129) - -11.74537548).abs() < 0.1);
+        assert!((u.get(130) - 14.92574659).abs() < 0.1);
+        assert!((u.get(131) - 37.24382873).abs() < 0.1);
+        assert!((u.get(132) - -2.25353612).abs() < 0.1);
+        assert!((u.get(133) - -12.97207479).abs() < 0.1);
+        assert!((u.get(134) - 7.91625844).abs() < 0.1);
+        assert!((u.get(135) - -31.59942016).abs() < 0.1);
+        assert!((u.get(136) - -29.35035223).abs() < 0.1);
+        assert!((u.get(137) - 41.27631878).abs() < 0.1);
+        assert!((u.get(138) - 19.89886234).abs() < 0.1);
+        assert!((u.get(139) - -17.59164273).abs() < 0.1);
+        assert!((u.get(140) - 26.07102151).abs() < 0.1);
+        assert!((u.get(141) - -0.08594049).abs() < 0.1);
+        assert!((u.get(142) - -51.18277665).abs() < 0.1);
+        assert!((u.get(143) - 5.22913077).abs() < 0.1);
+        assert!((u.get(144) - 22.92406853).abs() < 0.1);
+        assert!((u.get(145) - -16.16033735).abs() < 0.1);
+        assert!((u.get(146) - 17.72598191).abs() < 0.1);
+        assert!((u.get(147) - 22.18516070).abs() < 0.1);
+        assert!((u.get(148) - -25.11108388).abs() < 0.1);
+        assert!((u.get(149) - -1.18699777).abs() < 0.1);
+        assert!((u.get(150) - 9.03229592).abs() < 0.1);
+        assert!((u.get(151) - -26.45728235).abs() < 0.1);
+        assert!((u.get(152) - 4.56024994).abs() < 0.1);
+        assert!((u.get(153) - 22.08178310).abs() < 0.1);
+        assert!((u.get(154) - -17.59171648).abs() < 0.1);
+        assert!((u.get(155) - 7.02802722).abs() < 0.1);
+        assert!((u.get(156) - 31.28951287).abs() < 0.1);
+        assert!((u.get(157) - -22.50191079).abs() < 0.1);
+        assert!((u.get(158) - -23.46011347).abs() < 0.1);
+        assert!((u.get(159) - 19.15931422).abs() < 0.1);
     }
 }

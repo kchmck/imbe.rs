@@ -84,6 +84,7 @@ impl QuantizedAmplitudes {
 pub struct VoicedDecisions {
     params: BaseParams,
     voiced: u32,
+    pub unvoiced_count: u32,
 }
 
 impl VoicedDecisions {
@@ -91,24 +92,39 @@ impl VoicedDecisions {
         VoicedDecisions {
             params: params.clone(),
             voiced: voiced,
+            unvoiced_count: params.bands - voiced.count_ones(),
         }
     }
 
-    pub fn is_voiced(&self, idx: usize) -> bool {
-        assert!(idx >= 1 && idx <= self.params.harmonics as usize);
-        self.band_is_voiced(min((idx + 2) / 3, 12))
+    pub fn force_voiced(&mut self, l: usize) {
+        self.voiced |= self.mask(l)
     }
 
-    fn band_is_voiced(&self, idx: usize) -> bool {
+    pub fn is_voiced(&self, l: usize) -> bool {
+        if l as u32 > self.params.harmonics {
+            false
+        } else {
+            self.voiced & self.mask(l) != 0
+        }
+    }
+
+    fn mask(&self, l: usize) -> u32 {
+        self.band_mask(min((l + 2) / 3, 12))
+    }
+
+    fn band_mask(&self, idx: usize) -> u32 {
         assert!(idx >= 1 && idx <= self.params.bands as usize);
-        self.voiced & 1 << (self.params.bands as usize - idx) != 0
+        1 << (self.params.bands as usize - idx)
     }
 }
 
 impl Default for VoicedDecisions {
     fn default() -> VoicedDecisions {
+        let params = BaseParams::default();
+
         VoicedDecisions {
-            params: BaseParams::default(),
+            params: params,
+            unvoiced_count: params.bands,
             voiced: 0,
         }
     }
@@ -169,13 +185,6 @@ mod tests {
         assert_eq!(amps.get(16), 0b100);
         assert_eq!(amps.get(17), 0b10);
 
-        assert!(voice.band_is_voiced(1));
-        assert!(!voice.band_is_voiced(2));
-        assert!(voice.band_is_voiced(3));
-        assert!(!voice.band_is_voiced(4));
-        assert!(!voice.band_is_voiced(5));
-        assert!(voice.band_is_voiced(6));
-
         assert!(voice.is_voiced(1));
         assert!(voice.is_voiced(2));
         assert!(voice.is_voiced(3));
@@ -225,11 +234,6 @@ mod tests {
         assert_eq!(amps.get(10), 0b110110);
         assert_eq!(amps.get(11), 0b11100);
 
-        assert!(voice.band_is_voiced(1));
-        assert!(voice.band_is_voiced(2));
-        assert!(!voice.band_is_voiced(3));
-        assert!(voice.band_is_voiced(4));
-
         assert!(voice.is_voiced(1));
         assert!(voice.is_voiced(2));
         assert!(voice.is_voiced(3));
@@ -240,6 +244,10 @@ mod tests {
         assert!(!voice.is_voiced(8));
         assert!(!voice.is_voiced(9));
         assert!(voice.is_voiced(10));
+        assert!(!voice.is_voiced(11));
+        assert!(!voice.is_voiced(12));
+        assert!(!voice.is_voiced(13));
+        assert!(!voice.is_voiced(14));
     }
 
     #[test]

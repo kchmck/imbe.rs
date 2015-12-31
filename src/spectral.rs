@@ -1,3 +1,4 @@
+use std;
 use std::cmp::min;
 
 use arrayvec::ArrayVec;
@@ -52,6 +53,11 @@ impl Spectrals {
             self.0[min(l, self.0.len()) - 1]
         }
     }
+}
+
+impl std::ops::Deref for Spectrals {
+    type Target = ArrayVec<[f32; 56]>;
+    fn deref(&self) -> &Self::Target { &self.0 }
 }
 
 impl Default for Spectrals {
