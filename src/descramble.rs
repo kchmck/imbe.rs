@@ -93,7 +93,7 @@ impl VoiceDecisions {
         VoiceDecisions {
             params: params.clone(),
             voiced: voiced,
-            unvoiced_count: params.bands - voiced.count_ones(),
+            unvoiced_count: (params.bands - voiced.count_ones()) * 3,
         }
     }
 
@@ -185,6 +185,8 @@ mod tests {
         assert_eq!(amps.get(16), 0b100);
         assert_eq!(amps.get(17), 0b10);
 
+        assert_eq!(voice.unvoiced_count, 9);
+
         assert!(voice.is_voiced(1));
         assert!(voice.is_voiced(2));
         assert!(voice.is_voiced(3));
@@ -234,6 +236,8 @@ mod tests {
         assert_eq!(amps.get(10), 0b110110);
         assert_eq!(amps.get(11), 0b11100);
 
+        assert_eq!(voice.unvoiced_count, 3);
+
         assert!(voice.is_voiced(1));
         assert!(voice.is_voiced(2));
         assert!(voice.is_voiced(3));
@@ -244,10 +248,47 @@ mod tests {
         assert!(!voice.is_voiced(8));
         assert!(!voice.is_voiced(9));
         assert!(voice.is_voiced(10));
+
         assert!(!voice.is_voiced(11));
         assert!(!voice.is_voiced(12));
         assert!(!voice.is_voiced(13));
         assert!(!voice.is_voiced(14));
+    }
+
+    #[test]
+    fn test_descramble_16_2() {
+        let chunks = [
+            0b001000010010,
+            0b110011001100,
+            0b111000111000,
+            0b111111111111,
+            0b10101110101,
+            0b00101111010,
+            0b01110111011,
+            0b00001000,
+        ];
+
+        let b = Bootstrap::new(&chunks);
+        let p = BaseParams::new(b.unwrap_period());
+        let (_, voice, _) = descramble(&chunks, &p);
+
+        assert_eq!(p.harmonics, 16);
+        assert!(voice.is_voiced(1));
+        assert!(voice.is_voiced(2));
+        assert!(voice.is_voiced(3));
+        assert!(!voice.is_voiced(4));
+        assert!(!voice.is_voiced(5));
+        assert!(!voice.is_voiced(6));
+        assert!(voice.is_voiced(7));
+        assert!(voice.is_voiced(8));
+        assert!(voice.is_voiced(9));
+        assert!(!voice.is_voiced(10));
+        assert!(!voice.is_voiced(11));
+        assert!(!voice.is_voiced(12));
+        assert!(voice.is_voiced(13));
+        assert!(voice.is_voiced(14));
+        assert!(voice.is_voiced(15));
+        assert!(voice.is_voiced(16));
     }
 
     #[test]
