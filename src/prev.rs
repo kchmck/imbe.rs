@@ -1,15 +1,15 @@
-use descramble::VoicedDecisions;
+use descramble::VoiceDecisions;
 use enhance::{FrameEnergy, EnhancedSpectrals};
 use params::BaseParams;
 use spectral::Spectrals;
 use unvoiced::UnvoicedParts;
-use voice::{Phase, PhaseBase};
+use voiced::{Phase, PhaseBase};
 
 pub struct PrevFrame {
     pub params: BaseParams,
     pub spectrals: Spectrals,
     pub enhanced: EnhancedSpectrals,
-    pub voice: VoicedDecisions,
+    pub voice: VoiceDecisions,
     pub err_rate: f32,
     pub energy: FrameEnergy,
     pub amp_thresh: f32,
@@ -24,7 +24,7 @@ impl Default for PrevFrame {
             params: BaseParams::default(),
             spectrals: Spectrals::default(),
             enhanced: EnhancedSpectrals::default(),
-            voice: VoicedDecisions::default(),
+            voice: VoiceDecisions::default(),
             err_rate: 0.0,
             energy: FrameEnergy::default(),
             amp_thresh: 0.0, // not in document

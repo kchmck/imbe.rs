@@ -1,11 +1,10 @@
 use std::cmp::max;
 use std::f32::consts::PI;
 
-use arrayvec::ArrayVec;
 use collect_slice::CollectSlice;
 
 use consts::SAMPLES;
-use descramble::VoicedDecisions;
+use descramble::VoiceDecisions;
 use enhance::EnhancedSpectrals;
 use noise::Noise;
 use params::BaseParams;
@@ -40,10 +39,7 @@ impl Default for PhaseBase {
 pub struct Phase([f32; 56]);
 
 impl Phase {
-    pub fn new(params: &BaseParams, voiced: &VoicedDecisions, base: &PhaseBase,
-               prev: &PrevFrame)
-        -> Phase
-    {
+    pub fn new(params: &BaseParams, voiced: &VoiceDecisions, base: &PhaseBase) -> Phase {
         let mut noise = Noise::new();
         let mut phase = [0.0; 56];
 
@@ -73,16 +69,16 @@ pub struct Voiced<'a, 'b, 'c, 'd> {
     prev: &'a PrevFrame,
     phase: &'b Phase,
     enhanced: &'c EnhancedSpectrals,
-    voice: &'d VoicedDecisions,
-    params: BaseParams,
+    voice: &'d VoiceDecisions,
     window: window::Window,
+    fundamental: f32,
     end: usize,
     freq_changed: bool,
 }
 
 impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
     pub fn new(params: &BaseParams, prev: &'a PrevFrame, phase: &'b Phase,
-               enhanced: &'c EnhancedSpectrals, voice: &'d VoicedDecisions)
+               enhanced: &'c EnhancedSpectrals, voice: &'d VoiceDecisions)
         -> Voiced<'a, 'b, 'c, 'd>
     {
         let freq_diff = (params.fundamental - prev.params.fundamental).abs();
@@ -92,8 +88,8 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
             phase: phase,
             enhanced: enhanced,
             voice: voice,
-            params: params.clone(),
             window: window::synthesis_full(),
+            fundamental: params.fundamental,
             end: max(params.harmonics, prev.params.harmonics) as usize + 1,
             freq_changed: freq_diff >= 0.1 * params.fundamental,
         }
@@ -101,7 +97,7 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
 
     fn sig_cur(&self, l: usize, n: isize) -> f32 {
         self.window.get(n - SAMPLES as isize) * self.enhanced.get(l) * (
-            self.params.fundamental * (n - SAMPLES as isize) as f32 * l as f32 +
+            self.fundamental * (n - SAMPLES as isize) as f32 * l as f32 +
                 self.phase.get(l)
         ).cos()
     }
@@ -113,7 +109,7 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
         ).cos()
     }
 
-    fn get(&self, l: usize, n: isize) -> f32 {
+    fn get_pair(&self, l: usize, n: isize) -> f32 {
         match (self.voice.is_voiced(l), self.prev.voice.is_voiced(l)) {
             (false, false) => 0.0,
             (false, true) => self.sig_prev(l, n),
@@ -134,13 +130,13 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
     fn theta(&self, l: usize, n: isize) -> f32 {
         self.prev.phase.get(l) +
             (self.prev.params.fundamental * l as f32 + self.freq_change(l)) * n as f32 +
-            (self.params.fundamental - self.prev.params.fundamental) *
+            (self.fundamental - self.prev.params.fundamental) *
                 l as f32 * (n as f32).powi(2) / (2.0 * SAMPLES as f32)
     }
 
     fn phase_change(&self, l: usize) -> f32 {
         self.phase.get(l) - self.prev.phase.get(l) - (
-            self.prev.params.fundamental + self.params.fundamental
+            self.prev.params.fundamental + self.fundamental
         ) * l as f32 * SAMPLES as f32 / 2.0
     }
 
@@ -150,9 +146,9 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
         ).floor())
     }
 
-    pub fn eval(&self, n: isize) -> f32 {
+    pub fn get(&self, n: usize) -> f32 {
         (1..self.end).map(|l| {
-            2.0 * self.get(l, n)
+            2.0 * self.get_pair(l, n as isize)
         }).fold(0.0, |s, x| s + x)
     }
 }
@@ -162,11 +158,7 @@ mod test {
     use super::*;
     use params::BaseParams;
     use prev::PrevFrame;
-    use spectral::Spectrals;
     use descramble::{descramble, Bootstrap};
-    use noise::Noise;
-    use gain::Gains;
-    use coefs::Coefficients;
 
     #[test]
     fn test_phase_base() {
@@ -218,7 +210,7 @@ mod test {
         let prev = PrevFrame::default();
         let pb = PhaseBase::new(&p, &prev);
         let (_, voice, _) = descramble(&chunks, &p);
-        let phase = Phase::new(&p, &voice, &pb, &prev);
+        let phase = Phase::new(&p, &voice, &pb);
 
         assert_eq!(voice.unvoiced_count, 2);
 

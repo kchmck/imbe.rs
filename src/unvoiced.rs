@@ -1,11 +1,10 @@
 use std::f32::consts::PI;
-use std::ops::Range;
 
 use num::complex::Complex32;
 use collect_slice::CollectSlice;
 
 use consts::SAMPLES;
-use descramble::VoicedDecisions;
+use descramble::VoiceDecisions;
 use noise::Noise;
 use params::BaseParams;
 use spectral::Spectrals;
@@ -60,7 +59,7 @@ fn edges(l: usize, params: &BaseParams) -> (isize, isize) {
 pub struct UnvoicedParts([Complex32; 256]);
 
 impl UnvoicedParts {
-    pub fn new(dft: &UnvoicedDFT, params: &BaseParams, voice: &VoicedDecisions,
+    pub fn new(dft: &UnvoicedDFT, params: &BaseParams, voice: &VoiceDecisions,
                spectrals: &Spectrals)
         -> UnvoicedParts
     {
@@ -108,26 +107,31 @@ impl Default for UnvoicedParts {
     }
 }
 
-pub struct Unvoiced([f32; SAMPLES]);
+pub struct Unvoiced<'a, 'b> {
+    cur: &'a UnvoicedParts,
+    prev: &'b UnvoicedParts,
+    window: window::Window,
+}
 
-impl Unvoiced {
-    pub fn new(cur: &UnvoicedParts, prev: &UnvoicedParts) -> Unvoiced {
-        let mut unvoiced = [0.0; SAMPLES];
-        let window = window::synthesis_full();
-
-        (0..SAMPLES as isize).map(|n| {
-            let numer = window.get(n) * prev.idft(n) +
-                window.get(n - SAMPLES as isize) * cur.idft(n - SAMPLES as isize);
-            let denom = window.get(n).powi(2) +
-                window.get(n - SAMPLES as isize).powi(2);
-
-            numer / denom
-        }).collect_slice_checked(&mut unvoiced[..]);
-
-        Unvoiced(unvoiced)
+impl<'a, 'b> Unvoiced<'a, 'b> {
+    pub fn new(cur: &'a UnvoicedParts, prev: &'b UnvoicedParts) -> Unvoiced<'a, 'b> {
+        Unvoiced {
+            cur: cur,
+            prev: prev,
+            window: window::synthesis_full(),
+        }
     }
 
-    pub fn get(&self, n: usize) -> f32 { self.0[n] }
+    pub fn get(&self, n: usize) -> f32 {
+        let n = n as isize;
+
+        let numer = self.window.get(n) * self.prev.idft(n) +
+            self.window.get(n - SAMPLES as isize) * self.cur.idft(n - SAMPLES as isize);
+        let denom = self.window.get(n).powi(2) +
+            self.window.get(n - SAMPLES as isize).powi(2);
+
+        numer / denom
+    }
 }
 
 #[cfg(test)]
@@ -137,7 +141,6 @@ mod test {
     use spectral::Spectrals;
     use descramble::{descramble, Bootstrap};
     use params::BaseParams;
-    use noise::Noise;
     use gain::Gains;
     use coefs::Coefficients;
     use prev::{PrevFrame};
@@ -871,7 +874,7 @@ mod test {
         let (amps, voice, gain_idx) = descramble(&chunks, &p);
         let g = Gains::new(gain_idx, &amps, &p);
         let c = Coefficients::new(&g, &amps, &p);
-        let mut prev = PrevFrame::default();
+        let prev = PrevFrame::default();
         let s = Spectrals::new(&c, &p, &prev);
         let dft = UnvoicedDFT::new();
         let parts = UnvoicedParts::new(&dft, &p, &voice, &s);

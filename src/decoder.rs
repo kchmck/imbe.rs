@@ -1,7 +1,7 @@
 use coefs::Coefficients;
+use consts::SAMPLES;
 use descramble::{descramble, Bootstrap};
 use enhance::{self, EnhancedSpectrals, FrameEnergy};
-use error::{IMBEResult, IMBEError};
 use errors::Errors;
 use gain::Gains;
 use params::BaseParams;
@@ -15,6 +15,15 @@ pub struct CAIFrame {
     errors: [usize; 7],
 }
 
+impl CAIFrame {
+    pub fn new(chunks: [u32; 8], errors: [usize; 7]) -> CAIFrame {
+        CAIFrame {
+            chunks: chunks,
+            errors: errors,
+        }
+    }
+}
+
 pub struct IMBEDecoder {
     prev: PrevFrame,
 }
@@ -26,29 +35,29 @@ impl IMBEDecoder {
         }
     }
 
-    pub fn decode(&mut self, frame: CAIFrame) -> IMBEResult<()> {
+    pub fn decode<F: FnMut(f32)>(&mut self, frame: CAIFrame, mut cb: F) {
         let period = match Bootstrap::new(&frame.chunks) {
             Bootstrap::Period(p) => p,
             Bootstrap::Invalid => {
-                // repeat
-                return Err(IMBEError::Derp)
+                self.repeat(cb);
+                return;
             },
             Bootstrap::Silence => {
-                // output silence
-                return Ok(())
+                self.silence(cb);
+                return;
             },
         };
 
         let errors = Errors::new(&frame.errors, self.prev.err_rate);
 
         if enhance::should_repeat(&errors) {
-            // repeat
-            return Ok(())
+            self.repeat(cb);
+            return;
         }
 
         if enhance::should_mute(&errors) {
-            // output silence
-            return Ok(())
+            self.silence(cb);
+            return;
         }
 
         let params = BaseParams::new(period);
@@ -59,23 +68,61 @@ impl IMBEDecoder {
         let energy = FrameEnergy::new(&spectrals, &self.prev.energy, &params);
 
         let mut enhanced = EnhancedSpectrals::new(&spectrals, &energy, &params);
-        enhance::smooth(&mut enhanced, &mut voice, &errors, &energy, self.prev.amp_thresh);
-
-        // separate out following
+        let amp_thresh = enhance::amp_thresh(&errors, self.prev.amp_thresh);
+        enhance::smooth(&mut enhanced, &mut voice, &errors, &energy, amp_thresh);
 
         let udft = UnvoicedDFT::new();
         let uparts = UnvoicedParts::new(&udft, &params, &voice, &spectrals);
-        let unvoiced = Unvoiced::new(&uparts, &self.prev.unvoiced);
 
         let vbase = PhaseBase::new(&params, &self.prev);
-        let vphase = Phase::new(&params, &voice, &vbase, &self.prev);
+        let vphase = Phase::new(&params, &voice, &vbase);
+
+        {
+            let unvoiced = Unvoiced::new(&uparts, &self.prev.unvoiced);
+            let voiced = Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice);
+
+            for n in 0..SAMPLES {
+                cb(unvoiced.get(n) + voiced.get(n));
+            }
+        }
+
+        self.prev = PrevFrame {
+            params: params,
+            spectrals: spectrals,
+            enhanced: enhanced,
+            voice: voice,
+            err_rate: errors.rate,
+            energy: energy,
+            amp_thresh: amp_thresh,
+            unvoiced: uparts,
+            phase_base: vbase,
+            phase: vphase,
+        };
+    }
+
+    fn silence<F: FnMut(f32)>(&self, mut cb: F) {
+        for _ in 0..SAMPLES {
+            cb(0.0);
+        }
+    }
+
+    fn repeat<F: FnMut(f32)>(&self, mut cb: F) {
+        let params = self.prev.params.clone();
+        let voice = self.prev.voice.clone();
+        let spectrals = self.prev.spectrals.clone();
+        let enhanced = self.prev.enhanced.clone();
+
+        let udft = UnvoicedDFT::new();
+        let uparts = UnvoicedParts::new(&udft, &params, &voice, &spectrals);
+
+        let vbase = PhaseBase::new(&params, &self.prev);
+        let vphase = Phase::new(&params, &voice, &vbase);
+
+        let unvoiced = Unvoiced::new(&uparts, &self.prev.unvoiced);
         let voiced = Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice);
 
-        self.prev.params = params;
-        self.spectrals = spectrals;
-        self.enhanced = enhanced;
-        self.voice = voice;
-
-        Ok(())
+        for n in 0..SAMPLES {
+            cb(unvoiced.get(n) + voiced.get(n));
+        }
     }
 }

@@ -1,7 +1,6 @@
 use arrayvec::ArrayVec;
 
 use std::cmp::min;
-use std::ops::Range;
 
 use params::BaseParams;
 use scan::{ScanBits, ScanChunks};
@@ -9,14 +8,14 @@ use chunk::{Chunks, ChunkParts};
 use allocs::allocs;
 
 pub fn descramble(chunks: &Chunks, params: &BaseParams) ->
-    (QuantizedAmplitudes, VoicedDecisions, usize)
+    (QuantizedAmplitudes, VoiceDecisions, usize)
 {
     let parts = ChunkParts::new(chunks, params);
     let scan = ScanBits::new(ScanChunks::new(chunks, parts.scanned(), &params));
 
     (
         QuantizedAmplitudes::new(scan, params),
-        VoicedDecisions::new(parts.voiced(), params),
+        VoiceDecisions::new(parts.voiced(), params),
         gain_idx(chunks, parts.idx_part()),
     )
 }
@@ -39,6 +38,7 @@ impl Bootstrap {
         }
     }
 
+    #[cfg(test)]
     pub fn unwrap_period(&self) -> u8 {
         if let Bootstrap::Period(period) = *self {
             period
@@ -81,15 +81,16 @@ impl QuantizedAmplitudes {
     pub fn get(&self, idx: usize) -> u32 { self.0[idx - 3] }
 }
 
-pub struct VoicedDecisions {
+#[derive(Copy, Clone)]
+pub struct VoiceDecisions {
     params: BaseParams,
     voiced: u32,
     pub unvoiced_count: u32,
 }
 
-impl VoicedDecisions {
-    pub fn new(voiced: u32, params: &BaseParams) -> VoicedDecisions {
-        VoicedDecisions {
+impl VoiceDecisions {
+    pub fn new(voiced: u32, params: &BaseParams) -> VoiceDecisions {
+        VoiceDecisions {
             params: params.clone(),
             voiced: voiced,
             unvoiced_count: params.bands - voiced.count_ones(),
@@ -118,11 +119,11 @@ impl VoicedDecisions {
     }
 }
 
-impl Default for VoicedDecisions {
-    fn default() -> VoicedDecisions {
+impl Default for VoiceDecisions {
+    fn default() -> VoiceDecisions {
         let params = BaseParams::default();
 
-        VoicedDecisions {
+        VoiceDecisions {
             params: params,
             unvoiced_count: params.bands,
             voiced: 0,
@@ -134,7 +135,6 @@ impl Default for VoicedDecisions {
 mod tests {
     use super::*;
     use params::BaseParams;
-    use scan::{ScanBits, ScanChunks};
 
     #[test]
     #[should_panic]

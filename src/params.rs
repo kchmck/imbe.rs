@@ -1,6 +1,4 @@
-use std;
-
-use std::cmp;
+use std::cmp::min;
 use std::f32::consts::PI;
 
 #[derive(Copy, Clone)]
@@ -22,7 +20,7 @@ impl BaseParams {
     fn from_float(period: f32) -> BaseParams {
         let f = 4.0 * PI / (period + 39.5);
         let h = (0.9254 * (PI / f + 0.25).floor()) as u32;
-        let b = std::cmp::min((h + 2) / 3, 12);
+        let b = min((h + 2) / 3, 12);
 
         BaseParams {
             fundamental: f,

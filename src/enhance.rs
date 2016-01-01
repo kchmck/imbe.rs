@@ -1,10 +1,9 @@
 use std;
 use std::f32::consts::PI;
-use std::cmp::{min, max};
 
 use arrayvec::ArrayVec;
 
-use descramble::{Bootstrap, VoicedDecisions};
+use descramble::VoiceDecisions;
 use errors::Errors;
 use params::BaseParams;
 use spectral::Spectrals;
@@ -47,6 +46,7 @@ impl Default for FrameEnergy {
     }
 }
 
+#[derive(Clone)]
 pub struct EnhancedSpectrals(ArrayVec<[f32; 56]>);
 
 impl EnhancedSpectrals {
@@ -108,8 +108,16 @@ impl Default for EnhancedSpectrals {
     }
 }
 
-pub fn smooth(enhanced: &mut EnhancedSpectrals, voiced: &mut VoicedDecisions,
-              errors: &Errors, energy: &FrameEnergy, prev_amp_thresh: f32)
+pub fn amp_thresh(errors: &Errors, prev: f32) -> f32 {
+    if errors.rate <= 0.005 && errors.total <= 6 {
+        20480.0
+    } else {
+        6000.0 - 300.0 * errors.total as f32 + prev
+    }
+}
+
+pub fn smooth(enhanced: &mut EnhancedSpectrals, voiced: &mut VoiceDecisions,
+              errors: &Errors, energy: &FrameEnergy, amp_thresh: f32)
 {
     let thresh = if errors.rate <= 0.005 && errors.total <= 4 {
         std::f32::MAX
@@ -126,13 +134,6 @@ pub fn smooth(enhanced: &mut EnhancedSpectrals, voiced: &mut VoicedDecisions,
     }
 
     let amp = enhanced.iter().fold(0.0, |s, &m| s + m);
-
-    let amp_thresh = if errors.rate <= 0.005 && errors.total <= 6 {
-        20480.0
-    } else {
-        6000.0 - 300.0 * errors.total as f32 + prev_amp_thresh
-    };
-
     let scale = (amp_thresh / amp).max(1.0);
 
     for m in enhanced.iter_mut() {
@@ -176,7 +177,7 @@ mod tests {
         let (amps, _, gain_idx) = descramble(&chunks, &p);
         let g = Gains::new(gain_idx, &amps, &p);
         let c = Coefficients::new(&g, &amps, &p);
-        let mut prev = PrevFrame::default();
+        let prev = PrevFrame::default();
         let s = Spectrals::new(&c, &p, &prev);
         let pfe = FrameEnergy::default();
         let fe = FrameEnergy::new(&s, &pfe, &p);

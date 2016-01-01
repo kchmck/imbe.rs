@@ -7,6 +7,7 @@ use coefs::Coefficients;
 use params::BaseParams;
 use prev::PrevFrame;
 
+#[derive(Clone)]
 pub struct Spectrals(ArrayVec<[f32; 56]>);
 
 impl Spectrals {
@@ -43,8 +44,6 @@ impl Spectrals {
 
         Spectrals(spectral)
     }
-
-    pub fn len(&self) -> usize { self.0.len() }
 
     pub fn get(&self, l: usize) -> f32 {
         if l == 0 {
