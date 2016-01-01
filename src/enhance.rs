@@ -133,7 +133,7 @@ pub fn smooth(enhanced: &mut EnhancedSpectrals, voiced: &mut VoiceDecisions,
     }
 
     let amp = enhanced.iter().fold(0.0, |s, &m| s + m);
-    let scale = (amp_thresh / amp).max(1.0);
+    let scale = (amp_thresh / amp).min(1.0);
 
     for m in enhanced.iter_mut() {
         *m *= scale;
