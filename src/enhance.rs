@@ -22,9 +22,8 @@ impl FrameEnergy {
             m.powi(2)
         }).fold(0.0, |s, x| s + x);
 
-        let m1 = spectrals.iter().enumerate().map(|(l, m)| {
-            (l + 1, m)
-        }).map(|(l, &m)| {
+        let m1 = spectrals.iter().enumerate().map(|(l, &m)| {
+            let l = l + 1;
             m.powi(2) * (params.fundamental * l as f32).cos()
         }).fold(0.0, |s, x| s + x);
 
@@ -53,25 +52,25 @@ impl EnhancedSpectrals {
     pub fn new(spectrals: &Spectrals, energy: &FrameEnergy, params: &BaseParams)
         -> EnhancedSpectrals
     {
-        let m0_sqr = energy.spectral.powi(2);
-        let m1_sqr = energy.cos.powi(2);
+        let spectral_sqr = energy.spectral.powi(2);
+        let cos_sqr = energy.cos.powi(2);
 
-        let mut enhanced: ArrayVec<[f32; 56]> = spectrals.iter().enumerate().map(|(l, m)| {
-            (l + 1, m)
-        }).map(|(l, &m)| {
+        let mut enhanced = spectrals.iter().enumerate().map(|(l, &m)| {
+            let l = l + 1;
+
             let weight = m.sqrt() * (
                 0.96 * PI * (
-                    m0_sqr + m1_sqr - 2.0 * energy.spectral * energy.cos *
+                    spectral_sqr + cos_sqr - 2.0 * energy.spectral * energy.cos *
                         (params.fundamental * l as f32).cos()
-                ) / (params.fundamental * energy.spectral * (m0_sqr - m1_sqr))
+                ) / (params.fundamental * energy.spectral * (spectral_sqr - cos_sqr))
             ).powf(0.25);
 
             if 8 * l as u32 <= params.harmonics {
                 m
             } else {
-                weight.max(0.5).min(1.2) * m
+                m * weight.max(0.5).min(1.2)
             }
-        }).collect();
+        }).collect::<ArrayVec<[f32; 56]>>();
 
         let scale = (
             energy.spectral / enhanced.iter().fold(0.0, |s, &m| s + m.powi(2))

@@ -39,7 +39,7 @@ impl Default for PhaseBase {
 pub struct Phase([f32; 56]);
 
 impl Phase {
-    pub fn new(params: &BaseParams, voiced: &VoiceDecisions, base: &PhaseBase) -> Phase {
+    pub fn new(params: &BaseParams, voice: &VoiceDecisions, base: &PhaseBase) -> Phase {
         let mut noise = Noise::new();
         let mut phase = [0.0; 56];
 
@@ -95,6 +95,19 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
         }
     }
 
+    fn get_pair(&self, l: usize, n: isize) -> f32 {
+        match (self.voice.is_voiced(l), self.prev.voice.is_voiced(l)) {
+            (false, false) => 0.0,
+            (false, true) => self.sig_prev(l, n),
+            (true, false) => self.sig_cur(l, n),
+            (true, true) => if l >= 8 || self.freq_changed {
+                self.sig_prev(l, n) + self.sig_cur(l, n)
+            } else {
+                self.amplitude(l, n) * self.theta(l, n).cos()
+            },
+        }
+    }
+
     fn sig_cur(&self, l: usize, n: isize) -> f32 {
         self.window.get(n - SAMPLES as isize) * self.enhanced.get(l) * (
             self.fundamental * (n - SAMPLES as isize) as f32 * l as f32 +
@@ -107,19 +120,6 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
             self.prev.params.fundamental * n as f32 * l as f32 +
                 self.prev.phase.get(l)
         ).cos()
-    }
-
-    fn get_pair(&self, l: usize, n: isize) -> f32 {
-        match (self.voice.is_voiced(l), self.prev.voice.is_voiced(l)) {
-            (false, false) => 0.0,
-            (false, true) => self.sig_prev(l, n),
-            (true, false) => self.sig_cur(l, n),
-            (true, true) => if l >= 8 || self.freq_changed {
-                self.sig_prev(l, n) + self.sig_cur(l, n)
-            } else {
-                self.amplitude(l, n) * self.theta(l, n).cos()
-            },
-        }
     }
 
     fn amplitude(&self, l: usize, n: isize) -> f32 {
