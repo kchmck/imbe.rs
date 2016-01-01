@@ -255,6 +255,7 @@ mod test {
         assert_eq!(w.get(-104), 0.02);
         assert_eq!(w.get(-56), 0.98);
         assert_eq!(w.get(-88), 0.34);
+        assert_eq!(w.get(0), 1.0);
         assert_eq!(w.get(104), 0.02);
         assert_eq!(w.get(105), 0.0);
         assert_eq!(w.get(200), 0.0);
@@ -268,6 +269,7 @@ mod test {
         assert_eq!(w.get(-106), 0.0);
         assert_eq!(w.get(-105), 0.0);
         assert_eq!(w.get(-68), 0.74);
+        assert_eq!(w.get(0), 1.0);
         assert_eq!(w.get(77), 0.56);
         assert_eq!(w.get(105), 0.0);
         assert_eq!(w.get(106), 0.0);
