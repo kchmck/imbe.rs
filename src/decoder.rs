@@ -72,7 +72,7 @@ impl IMBEDecoder {
         enhance::smooth(&mut enhanced, &mut voice, &errors, &energy, amp_thresh);
 
         let udft = UnvoicedDFT::new();
-        let uparts = UnvoicedParts::new(&udft, &params, &voice, &spectrals);
+        let uparts = UnvoicedParts::new(&udft, &params, &voice, &enhanced);
 
         let vbase = PhaseBase::new(&params, &self.prev);
         let vphase = Phase::new(&params, &voice, &vbase);
@@ -109,11 +109,10 @@ impl IMBEDecoder {
     fn repeat<F: FnMut(f32)>(&self, mut cb: F) {
         let params = self.prev.params.clone();
         let voice = self.prev.voice.clone();
-        let spectrals = self.prev.spectrals.clone();
         let enhanced = self.prev.enhanced.clone();
 
         let udft = UnvoicedDFT::new();
-        let uparts = UnvoicedParts::new(&udft, &params, &voice, &spectrals);
+        let uparts = UnvoicedParts::new(&udft, &params, &voice, &enhanced);
 
         let vbase = PhaseBase::new(&params, &self.prev);
         let vphase = Phase::new(&params, &voice, &vbase);

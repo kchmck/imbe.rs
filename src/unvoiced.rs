@@ -5,9 +5,9 @@ use collect_slice::CollectSlice;
 
 use consts::SAMPLES;
 use descramble::VoiceDecisions;
+use enhance::EnhancedSpectrals;
 use noise::Noise;
 use params::BaseParams;
-use spectral::Spectrals;
 use window;
 
 // Result of equation 121
@@ -60,19 +60,20 @@ pub struct UnvoicedParts([Complex32; 256]);
 
 impl UnvoicedParts {
     pub fn new(dft: &UnvoicedDFT, params: &BaseParams, voice: &VoiceDecisions,
-               spectrals: &Spectrals)
+               enhanced: &EnhancedSpectrals)
         -> UnvoicedParts
     {
         let mut parts = [Complex32::new(0.0, 0.0); 256];
 
-        for l in 1..(params.harmonics+1) as usize {
+        for (l, &m) in enhanced.iter().enumerate() {
+            let l = l + 1;
+
             if voice.is_voiced(l) {
                 continue;
             }
 
             let (lower, upper) = edges(l, params);
-            let spectral = spectrals.get(l);
-            let scale = dft.scale(lower, upper, spectral);
+            let scale = dft.scale(lower, upper, m);
 
             (lower..upper).map(|m| {
                 scale * dft.get(m)
