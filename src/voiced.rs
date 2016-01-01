@@ -190,35 +190,4 @@ mod test {
         assert!((pb.get(20) - -131.1630389).abs() < 0.0001);
         assert!((pb.get(56) - -367.2565089).abs() < 0.0001);
     }
-
-    #[test]
-    fn test_phase() {
-        let chunks = [
-            0b001000010010,
-            0b110011001100,
-            0b111000111000,
-            0b111111111111,
-            0b10101110101,
-            0b00101111010,
-            0b01110111011,
-            0b00001000,
-        ];
-
-        let b = Bootstrap::new(&chunks);
-        let p = BaseParams::new(b.unwrap_period());
-        let prev = PrevFrame::default();
-        let pb = PhaseBase::new(&p, &prev);
-        let (_, voice, _) = descramble(&chunks, &p);
-        let phase = Phase::new(&p, &voice, &pb);
-
-        assert_eq!(voice.unvoiced_count, 2);
-
-        assert!((phase.get(1) - -6.558151944).abs() < 0.0001);
-        assert!((phase.get(2) - -13.11630389).abs() < 0.0001);
-        assert!((phase.get(3) - -19.67445583).abs() < 0.0001);
-        assert!((phase.get(4) - -26.23260778).abs() < 0.0001);
-        assert!((phase.get(5) - -32.91586903).abs() < 0.0001);
-        assert!((phase.get(6) - -39.37108022).abs() < 0.0001);
-        assert!((phase.get(7) - -45.60512329).abs() < 0.0001);
-    }
 }
