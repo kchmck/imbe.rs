@@ -24,7 +24,7 @@ impl UnvoicedDFT {
             let mut noise = Noise::new();
 
             (-104..105).map(|n| {
-                noise.next() as f32 * window.get(n) *
+                noise.next() * window.get(n) *
                     Complex32::new(0.0, -2.0 / 256.0 * PI * m as f32 * n as f32).exp()
             }).fold(Complex32::new(0.0, 0.0), |s, x| s + x)
         }).collect_slice_checked(&mut dft[..]);

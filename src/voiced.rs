@@ -48,9 +48,8 @@ impl Phase {
         (1..trans+1).map(|l| {
             base.get(l)
         }).chain((trans+1..57).map(|l| {
-            base.get(l) + voiced.unvoiced_count as f32 * (
-                2.0 * PI / 53125.0 * noise.next() as f32 - PI
-            ) / params.harmonics as f32
+            base.get(l) + voice.unvoiced_count as f32 * noise.next_phase() /
+                params.harmonics as f32
         })).collect_slice_checked(&mut phase[..]);
 
         Phase(phase)
