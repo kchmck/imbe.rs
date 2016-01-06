@@ -90,10 +90,13 @@ pub struct VoiceDecisions {
 
 impl VoiceDecisions {
     pub fn new(voiced: u32, params: &BaseParams) -> VoiceDecisions {
+        let voiced_count = (voiced >> 1).count_ones() * 3 +
+                           (voiced & 1) * (1 + (params.harmonics + 2) % 3);
+
         VoiceDecisions {
             params: params.clone(),
             voiced: voiced,
-            unvoiced_count: (params.bands - voiced.count_ones()) * 3,
+            unvoiced_count: params.harmonics - voiced_count,
         }
     }
 
@@ -289,6 +292,57 @@ mod tests {
         assert!(voice.is_voiced(14));
         assert!(voice.is_voiced(15));
         assert!(voice.is_voiced(16));
+    }
+
+    #[test]
+    fn test_voice() {
+        let p = BaseParams::new(32);
+        assert_eq!(p.harmonics, 16);
+        assert_eq!(p.bands, 6);
+        let v = VoiceDecisions::new(0b101011, &p);
+        assert_eq!(v.unvoiced_count, 6);
+        let v = VoiceDecisions::new(0b101010, &p);
+        assert_eq!(v.unvoiced_count, 7);
+        let v = VoiceDecisions::new(0b001001, &p);
+        assert_eq!(v.unvoiced_count, 12);
+        let v = VoiceDecisions::new(0b101000, &p);
+        assert_eq!(v.unvoiced_count, 10);
+        let v = VoiceDecisions::new(0b000000, &p);
+        assert_eq!(v.unvoiced_count, 16);
+        let v = VoiceDecisions::new(0b111111, &p);
+        assert_eq!(v.unvoiced_count, 0);
+
+        let p = BaseParams::new(36);
+        assert_eq!(p.harmonics, 17);
+        assert_eq!(p.bands, 6);
+        let v = VoiceDecisions::new(0b101011, &p);
+        assert_eq!(v.unvoiced_count, 6);
+        let v = VoiceDecisions::new(0b101010, &p);
+        assert_eq!(v.unvoiced_count, 8);
+        let v = VoiceDecisions::new(0b001001, &p);
+        assert_eq!(v.unvoiced_count, 12);
+        let v = VoiceDecisions::new(0b101000, &p);
+        assert_eq!(v.unvoiced_count, 11);
+        let v = VoiceDecisions::new(0b000000, &p);
+        assert_eq!(v.unvoiced_count, 17);
+        let v = VoiceDecisions::new(0b111111, &p);
+        assert_eq!(v.unvoiced_count, 0);
+
+        let p = BaseParams::new(40);
+        assert_eq!(p.harmonics, 18);
+        assert_eq!(p.bands, 6);
+        let v = VoiceDecisions::new(0b101011, &p);
+        assert_eq!(v.unvoiced_count, 6);
+        let v = VoiceDecisions::new(0b101010, &p);
+        assert_eq!(v.unvoiced_count, 9);
+        let v = VoiceDecisions::new(0b001001, &p);
+        assert_eq!(v.unvoiced_count, 12);
+        let v = VoiceDecisions::new(0b101000, &p);
+        assert_eq!(v.unvoiced_count, 12);
+        let v = VoiceDecisions::new(0b000000, &p);
+        assert_eq!(v.unvoiced_count, 18);
+        let v = VoiceDecisions::new(0b111111, &p);
+        assert_eq!(v.unvoiced_count, 0);
     }
 
     #[test]
