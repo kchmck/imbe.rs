@@ -16,7 +16,7 @@ pub struct PhaseBase([f32; 56]);
 impl PhaseBase {
     pub fn new(params: &BaseParams, prev: &PrevFrame) -> PhaseBase {
         let mut phase_base = [0.0; 56];
-        let common = (prev.params.fundamental - params.fundamental) *
+        let common = (prev.params.fundamental + params.fundamental) *
             SAMPLES as f32 / 2.0;
 
         (1..57).map(|l| {
@@ -181,13 +181,13 @@ mod test {
 
         let pb = PhaseBase::new(&p, &prev);
 
-        assert!((pb.get(1) - -6.558151944).abs() < 0.0001);
-        assert!((pb.get(2) - -13.11630389).abs() < 0.0001);
-        assert!((pb.get(3) - -19.67445583).abs() < 0.0001);
-        assert!((pb.get(4) - -26.23260778).abs() < 0.0001);
-        assert!((pb.get(5) - -32.79075972).abs() < 0.0001);
-        assert!((pb.get(6) - -39.34891166).abs() < 0.0001);
-        assert!((pb.get(20) - -131.1630389).abs() < 0.0001);
-        assert!((pb.get(56) - -367.2565089).abs() < 0.0001);
+        assert!((pb.get(1) - 21.56239846).abs() < 0.0001);
+        assert!((pb.get(2) - 43.12479691).abs() < 0.0001);
+        assert!((pb.get(3) - 64.68719537).abs() < 0.0001);
+        assert!((pb.get(4) - 86.24959382).abs() < 0.0001);
+        assert!((pb.get(5) - 107.8119923).abs() < 0.0001);
+        assert!((pb.get(6) - 129.3743907).abs() < 0.0001);
+        assert!((pb.get(20) - 431.2479691).abs() < 0.0001);
+        assert!((pb.get(56) - 1207.494314).abs() < 0.001);
     }
 }
