@@ -90,7 +90,7 @@ impl UnvoicedParts {
                 pscale * dft
             }).collect_slice_checked(&mut parts[128 + lower as usize..128 + upper as usize]);
 
-            neg.iter().rev().map(|&dft| {
+            neg.iter().map(|&dft| {
                 nscale * dft
             }).collect_slice_checked(&mut parts[128 - upper as usize + 1..128 - lower as usize + 1]);
         }
