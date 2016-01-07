@@ -13,40 +13,30 @@ use params::BaseParams;
 use window;
 
 // Result of equation 121
-const SCALING_COEF: f32 = 146.6432708443356;
+const SCALING_NUMER: f32 = 146.6432708443356;
+const SCALING_DENOM: f32 = 3.33198263;
+const SCALING_COEF: f32 = SCALING_NUMER / SCALING_DENOM;
 
-pub struct UnvoicedDFT {
-    dfts: ArrayVec<[Complex32; 256]>,
-    scale: f32,
-}
+pub struct UnvoicedDFT(ArrayVec<[Complex32; 256]>);
 
 impl UnvoicedDFT {
     pub fn new(lower: isize, upper: isize, noise: &Noise, window: &window::Window)
         -> UnvoicedDFT
     {
-        let dfts = (lower..upper).map(|m| {
+        UnvoicedDFT((lower..upper).map(|m| {
             let mut nclone = noise.clone();
 
             (-104..105).map(|n| {
                 nclone.next() * window.get(n) *
                     Complex32::new(0.0, -2.0 / 256.0 * PI * m as f32 * n as f32).exp()
             }).fold(Complex32::new(0.0, 0.0), |s, x| s + x)
-        }).collect::<ArrayVec<[Complex32; 256]>>();
-
-        let sum = dfts.iter().map(|dft| dft.norm_sqr()).fold(0.0, |s, x| s + x);
-
-        UnvoicedDFT {
-            dfts: dfts,
-            scale: SCALING_COEF / (sum / (upper - lower) as f32).sqrt(),
-        }
+        }).collect())
     }
-
-    pub fn scale(&self, spectral: f32) -> f32 { self.scale * spectral }
 }
 
 impl std::ops::Deref for UnvoicedDFT {
     type Target = ArrayVec<[Complex32; 256]>;
-    fn deref(&self) -> &Self::Target { &self.dfts }
+    fn deref(&self) -> &Self::Target { &self.0 }
 }
 
 fn edges(l: usize, params: &BaseParams) -> (isize, isize) {
@@ -71,28 +61,24 @@ impl UnvoicedParts {
         let noise = Noise::new();
         let window = window::synthesis_trunc();
 
-        for (l, &m) in enhanced.iter().enumerate() {
-            let l = l + 1;
-
+        for l in 1..params.harmonics as usize+1 {
             if voice.is_voiced(l) {
                 continue;
             }
 
             let (lower, upper) = edges(l, params);
+            let scale = SCALING_COEF * enhanced.get(l);
 
             let pos = UnvoicedDFT::new(lower, upper, &noise, &window);
-            let pscale = pos.scale(m);
-
             let neg = UnvoicedDFT::new(-upper+1, -lower+1, &noise, &window);
-            let nscale = neg.scale(m);
 
-            pos.iter().map(|&dft| {
-                pscale * dft
-            }).collect_slice_checked(&mut parts[128 + lower as usize..128 + upper as usize]);
+            pos.iter()
+               .map(|&dft| scale * dft)
+               .collect_slice(&mut parts[128 + lower as usize..]);
 
-            neg.iter().map(|&dft| {
-                nscale * dft
-            }).collect_slice_checked(&mut parts[128 - upper as usize + 1..128 - lower as usize + 1]);
+            neg.iter()
+               .map(|&dft| scale * dft)
+               .collect_slice(&mut parts[129 - upper as usize..]);
         }
 
         UnvoicedParts(parts)
