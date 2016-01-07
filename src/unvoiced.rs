@@ -21,13 +21,14 @@ pub struct UnvoicedDFT {
 }
 
 impl UnvoicedDFT {
-    pub fn new(lower: isize, upper: isize) -> UnvoicedDFT {
-        let window = window::synthesis_trunc();
-        let mut noise = Noise::new();
-
+    pub fn new(lower: isize, upper: isize, noise: &Noise, window: &window::Window)
+        -> UnvoicedDFT
+    {
         let dfts = (lower..upper).map(|m| {
+            let mut nclone = noise.clone();
+
             (-104..105).map(|n| {
-                noise.next() * window.get(n) *
+                nclone.next() * window.get(n) *
                     Complex32::new(0.0, -2.0 / 256.0 * PI * m as f32 * n as f32).exp()
             }).fold(Complex32::new(0.0, 0.0), |s, x| s + x)
         }).collect::<ArrayVec<[Complex32; 256]>>();
@@ -67,6 +68,9 @@ impl UnvoicedParts {
     {
         let mut parts = [Complex32::new(0.0, 0.0); 256];
 
+        let noise = Noise::new();
+        let window = window::synthesis_trunc();
+
         for (l, &m) in enhanced.iter().enumerate() {
             let l = l + 1;
 
@@ -76,10 +80,10 @@ impl UnvoicedParts {
 
             let (lower, upper) = edges(l, params);
 
-            let pos = UnvoicedDFT::new(lower, upper);
+            let pos = UnvoicedDFT::new(lower, upper, &noise, &window);
             let pscale = pos.scale(m);
 
-            let neg = UnvoicedDFT::new(-upper+1, -lower+1);
+            let neg = UnvoicedDFT::new(-upper+1, -lower+1, &noise, &window);
             let nscale = neg.scale(m);
 
             pos.iter().map(|&dft| {

@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 
 use rand::{self, XorShiftRng, Rng};
 
+#[derive(Clone)]
 pub struct Noise(XorShiftRng);
 
 impl Noise {
