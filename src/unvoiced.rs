@@ -13,9 +13,7 @@ use params::BaseParams;
 use window;
 
 // Result of equation 121
-const SCALING_NUMER: f32 = 146.6432708443356;
-const SCALING_DENOM: f32 = 3.33198263;
-const SCALING_COEF: f32 = SCALING_NUMER / SCALING_DENOM;
+const SCALING_COEF: f32 = 5.0;
 
 pub struct UnvoicedDFT(ArrayVec<[Complex32; 256]>);
 
