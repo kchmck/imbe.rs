@@ -1,7 +1,7 @@
 extern crate arrayvec;
-extern crate rand;
 extern crate collect_slice;
 extern crate num;
+extern crate rand;
 
 pub mod decoder;
 pub mod consts;

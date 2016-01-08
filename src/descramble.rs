@@ -20,8 +20,6 @@ pub fn descramble(chunks: &Chunks, params: &BaseParams) ->
     )
 }
 
-// pub fn descramble(...) -> (u32, usize
-
 #[derive(Copy, Clone)]
 pub enum Bootstrap {
     Period(u8),
@@ -48,7 +46,7 @@ impl Bootstrap {
     }
 }
 
-pub fn gain_idx(chunks: &Chunks, idx_part: u32) -> usize {
+fn gain_idx(chunks: &Chunks, idx_part: u32) -> usize {
     (chunks[0] & 0x38 | idx_part << 1 | chunks[7] >> 3 & 1) as usize
 }
 
@@ -57,7 +55,6 @@ pub struct QuantizedAmplitudes(ArrayVec<[u32; 64]>);
 impl QuantizedAmplitudes {
     fn new(mut scan: ScanBits, params: &BaseParams) -> QuantizedAmplitudes {
         let mut amps: ArrayVec<[u32; 64]> = (0..params.harmonics-1).map(|_| 0).collect();
-
         let (max, bits) = allocs(params.harmonics);
 
         for idx in (0..max).rev() {

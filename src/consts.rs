@@ -1,7 +1,7 @@
 // Audio samples per second
 pub const SAMPLE_RATE: usize = 8000;
 
-// Samples per voiced/unvoiced segment
+// Samples per voiced/unvoiced frame
 pub const SAMPLES: usize = 160;
 
 #[cfg(test)]

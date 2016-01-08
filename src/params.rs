@@ -12,8 +12,8 @@ pub struct BaseParams {
 }
 
 impl BaseParams {
-    pub fn new(first_chunk: u8) -> BaseParams {
-        Self::from_float(first_chunk as f32)
+    pub fn new(period: u8) -> BaseParams {
+        Self::from_float(period as f32)
     }
 
     // Assuming period is valid
