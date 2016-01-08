@@ -17,10 +17,7 @@ impl Coefficients {
 
         for block in 1..7 {
             let c = CoefBlock::new(block, gains, amps, params);
-
-            for j in 1..(c.len()+1) {
-                coefs.push(c.idct(j));
-            }
+            coefs.extend((1..c.len()+1).map(|j| c.idct(j)));
         }
 
         Coefficients(coefs)
