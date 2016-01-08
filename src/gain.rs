@@ -1,5 +1,7 @@
 use std::f32::consts::PI;
 
+use collect_slice::CollectSlice;
+
 use descramble::QuantizedAmplitudes;
 use params::BaseParams;
 use allocs::allocs;
@@ -15,16 +17,16 @@ impl Gains {
 
         gains[0] = GAIN[gain_idx];
 
-        for m in 2..7 {
+        (2..7).map(|m| {
             let bits = alloc[m + 1 - 3] as i32;
             let step = steps[m + 1 - 3];
 
-            gains[m - 1] = if bits == 0 {
+            if bits == 0 {
                 0.0
             } else {
                 step * (amps.get(m + 1) as f32 - (2.0f32).powi(bits - 1) + 0.5)
-            };
-        }
+            }
+        }).collect_slice_checked(&mut gains[1..]);
 
         Gains(gains)
     }
