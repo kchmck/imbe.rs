@@ -46,18 +46,16 @@ impl CoefBlock {
         let m_start = 8 + (0..block).map(|k| amps_used[k]).fold(0, |s, x| s + x) as usize;
         let m_end = m_start + amps_used[block] as usize;
 
-        for m in m_start..m_end {
+        coefs.extend((m_start..m_end).enumerate().map(|(k, m)| {
             let bits = alloc[m - 3] as i32;
 
-            let coef = if bits == 0 {
+            if bits == 0 {
                 0.0
             } else {
-                let step = DCT_STEP_SIZE[bits as usize - 1] * DCT_STD_DEV[coefs.len() - 1];
-                step * (amps.get(m as usize) as f32 - (2.0f32).powi(bits as i32 - 1) + 0.5)
-            };
-
-            coefs.push(coef);
-        }
+                DCT_STEP_SIZE[bits as usize - 1] * DCT_STD_DEV[k] *
+                    (amps.get(m as usize) as f32 - (2.0f32).powi(bits as i32 - 1) + 0.5)
+            }
+        }));
 
         CoefBlock(coefs)
     }
