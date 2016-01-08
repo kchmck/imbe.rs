@@ -106,7 +106,7 @@ mod tests {
         assert_eq!(p.bands, 6);
 
         let parts = ChunkParts::new(&chunks, &p);
-        let mut c = ScanChunks::new(&chunks, parts.scanned(), &p);
+        let mut c = ScanChunks::new(&chunks, parts.scanned, &p);
 
         assert_eq!(c.next().unwrap(), (0b101, 3));
         assert_eq!(c.next().unwrap(), (0b101010101010, 12));
@@ -136,7 +136,7 @@ mod tests {
         assert_eq!(p.bands, 4);
 
         let parts = ChunkParts::new(&chunks, &p);
-        let mut c = ScanChunks::new(&chunks, parts.scanned(), &p);
+        let mut c = ScanChunks::new(&chunks, parts.scanned, &p);
 
         assert_eq!(c.next().unwrap(), (0b101, 3));
         assert_eq!(c.next().unwrap(), (0b101010101010, 12));
@@ -166,7 +166,7 @@ mod tests {
         assert_eq!(p.bands, 6);
 
         let parts = ChunkParts::new(&chunks, &p);
-        let mut c = ScanBits::new(ScanChunks::new(&chunks, parts.scanned(), &p));
+        let mut c = ScanBits::new(ScanChunks::new(&chunks, parts.scanned, &p));
 
         assert_eq!(c.next().unwrap(), 1);
         assert_eq!(c.next().unwrap(), 0);
@@ -262,7 +262,7 @@ mod tests {
         assert_eq!(p.bands, 4);
 
         let parts = ChunkParts::new(&chunks, &p);
-        let mut c = ScanBits::new(ScanChunks::new(&chunks, parts.scanned(), &p));
+        let mut c = ScanBits::new(ScanChunks::new(&chunks, parts.scanned, &p));
 
         assert_eq!(c.next().unwrap(), 1);
         assert_eq!(c.next().unwrap(), 0);

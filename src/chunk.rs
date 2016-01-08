@@ -4,28 +4,20 @@ pub type Chunks = [u32; 8];
 
 #[derive(Copy, Clone)]
 pub struct ChunkParts {
-    parts: u32,
-    voiced_len: u32,
+    pub voiced: u32,
+    pub idx_part: u32,
+    pub scanned: u32,
 }
 
 impl ChunkParts {
     pub fn new(chunks: &Chunks, params: &BaseParams) -> ChunkParts {
+        let parts = chunks[4] << 11 | chunks[5];
+
         ChunkParts {
-            parts: chunks[4] << 11 | chunks[5],
-            voiced_len: params.bands,
+            voiced: parts >> (22 - params.bands),
+            idx_part: parts >> (20 - params.bands) & 0b11,
+            scanned: parts & !0 >> (12 + params.bands),
         }
-    }
-
-    pub fn voiced(&self) -> u32 {
-        self.parts >> (22 - self.voiced_len)
-    }
-
-    pub fn idx_part(&self) -> u32 {
-        self.parts >> (20 - self.voiced_len) & 0b11
-    }
-
-    pub fn scanned(&self) -> u32 {
-        self.parts & !0 >> (12 + self.voiced_len)
     }
 }
 
@@ -50,9 +42,9 @@ mod tests {
 
         let c = ChunkParts::new(&chunks, &p);
 
-        assert_eq!(c.voiced(), 0b111101);
-        assert_eq!(c.idx_part(), 0b10);
-        assert_eq!(c.scanned(), 0b10100001111010);
+        assert_eq!(c.voiced, 0b111101);
+        assert_eq!(c.idx_part, 0b10);
+        assert_eq!(c.scanned, 0b10100001111010);
     }
 
     #[test]
@@ -71,8 +63,8 @@ mod tests {
 
         let c = ChunkParts::new(&chunks, &p);
 
-        assert_eq!(c.voiced(), 0b1111);
-        assert_eq!(c.idx_part(), 0b01);
-        assert_eq!(c.scanned(), 0b1010100001111010);
+        assert_eq!(c.voiced, 0b1111);
+        assert_eq!(c.idx_part, 0b01);
+        assert_eq!(c.scanned, 0b1010100001111010);
     }
 }

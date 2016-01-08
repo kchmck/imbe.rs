@@ -11,12 +11,12 @@ pub fn descramble(chunks: &Chunks, params: &BaseParams) ->
     (QuantizedAmplitudes, VoiceDecisions, usize)
 {
     let parts = ChunkParts::new(chunks, params);
-    let scan = ScanBits::new(ScanChunks::new(chunks, parts.scanned(), &params));
 
     (
-        QuantizedAmplitudes::new(scan, params),
-        VoiceDecisions::new(parts.voiced(), params),
-        gain_idx(chunks, parts.idx_part()),
+        QuantizedAmplitudes::new(ScanBits::new(
+            ScanChunks::new(chunks, parts.scanned, &params)), params),
+        VoiceDecisions::new(parts.voiced, params),
+        gain_idx(chunks, parts.idx_part),
     )
 }
 
