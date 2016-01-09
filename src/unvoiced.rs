@@ -86,13 +86,13 @@ impl UnvoicedParts {
             let neg = UnvoicedDFT::new(-upper+1, -lower+1, &noise, &window);
             let nscale = neg.scale(m);
 
-            pos.iter().map(|&dft| {
-                pscale * dft
-            }).collect_slice_checked(&mut parts[128 + lower as usize..128 + upper as usize]);
+            pos.iter()
+               .map(|&dft| pscale * dft)
+               .collect_slice(&mut parts[128 + lower as usize..]);
 
-            neg.iter().map(|&dft| {
-                nscale * dft
-            }).collect_slice_checked(&mut parts[128 - upper as usize + 1..128 - lower as usize + 1]);
+            neg.iter()
+               .map(|&dft| nscale * dft)
+               .collect_slice(&mut parts[129 - upper as usize..]);
         }
 
         UnvoicedParts(parts)
