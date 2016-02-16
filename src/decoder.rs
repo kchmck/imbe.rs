@@ -110,7 +110,6 @@ impl IMBEDecoder {
         let enhanced = self.prev.enhanced.clone();
 
         let uparts = UnvoicedParts::new(&params, &voice, &enhanced);
-
         let vbase = PhaseBase::new(&params, &self.prev);
         let vphase = Phase::new(&params, &voice, &vbase);
 
