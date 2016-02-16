@@ -28,8 +28,8 @@ impl UnvoicedDFT {
             let mut nclone = noise.clone();
 
             (-104..105).map(|n| {
-                nclone.next() * window.get(n) *
-                    Complex32::new(0.0, -2.0 / 256.0 * PI * m as f32 * n as f32).exp()
+                let (sin, cos) = (2.0 / 256.0 * PI * m as f32 * n as f32).sin_cos();
+                nclone.next() * window.get(n) * Complex32::new(cos, -sin)
             }).fold(Complex32::new(0.0, 0.0), |s, x| s + x)
         }).collect::<ArrayVec<[Complex32; 256]>>();
 
@@ -107,8 +107,8 @@ impl UnvoicedParts {
         }
 
         (-128..128).map(|m| {
-            self.get(m) *
-                Complex32::new(0.0, 2.0 / 256.0 * PI * m as f32 * n as f32).exp()
+            let (sin, cos) = (2.0 / 256.0 * PI * m as f32 * n as f32).sin_cos();
+            self.get(m) * Complex32::new(cos, sin)
         }).fold(Complex32::new(0.0, 0.0), |s, x| s + x).re / 256.0
     }
 }
