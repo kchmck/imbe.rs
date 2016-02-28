@@ -1,9 +1,7 @@
-use std;
 use std::f32::consts::PI;
 
-use arrayvec::ArrayVec;
 use num::complex::Complex32;
-use collect_slice::CollectSlice;
+use num::traits::Zero;
 
 use consts::SAMPLES;
 use descramble::VoiceDecisions;
@@ -15,63 +13,33 @@ use window;
 // Result of equation 121
 const SCALING_COEF: f32 = 146.6432708443356;
 
-pub struct UnvoicedDFT {
-    dfts: ArrayVec<[Complex32; 256]>,
-    scale: f32,
-}
+const DFT_SIZE: usize = 256;
+const IDFT_SIZE: usize = 256;
 
-impl UnvoicedDFT {
-    pub fn new(lower: isize, upper: isize, noise: &Noise, window: &window::Window)
-        -> UnvoicedDFT
-    {
-        let dfts = (lower..upper).map(|m| {
-            let mut nclone = noise.clone();
+const DFT_HALF: usize = DFT_SIZE / 2;
+const IDFT_HALF: usize = IDFT_SIZE / 2;
 
-            (-104..105).map(|n| {
-                let (sin, cos) = (2.0 / 256.0 * PI * m as f32 * n as f32).sin_cos();
-                nclone.next() * window.get(n) * Complex32::new(cos, -sin)
-            }).fold(Complex32::new(0.0, 0.0), |s, x| s + x)
-        }).collect::<ArrayVec<[Complex32; 256]>>();
-
-        let sum = dfts.iter().map(|dft| dft.norm_sqr()).fold(0.0, |s, x| s + x);
-
-        UnvoicedDFT {
-            dfts: dfts,
-            scale: SCALING_COEF / (sum / (upper - lower) as f32).sqrt(),
-        }
-    }
-
-    pub fn scale(&self, spectral: f32) -> f32 { self.scale * spectral }
-}
-
-impl std::ops::Deref for UnvoicedDFT {
-    type Target = ArrayVec<[Complex32; 256]>;
-    fn deref(&self) -> &Self::Target { &self.dfts }
-}
-
-fn edges(l: usize, params: &BaseParams) -> (isize, isize) {
-    let edge = |inner: f32| {
-        256.0 / (2.0 * PI) * inner * params.fundamental
-    };
+fn edges(l: usize, params: &BaseParams) -> (usize, usize) {
+    let common = DFT_SIZE as f32 / (2.0 * PI) * params.fundamental;
 
     (
-        edge(l as f32 - 0.5).ceil() as isize,
-        edge(l as f32 + 0.5).ceil() as isize,
+        (common * (l as f32 - 0.5)).ceil() as usize,
+        (common * (l as f32 + 0.5)).ceil() as usize,
     )
 }
 
-pub struct UnvoicedParts([Complex32; 256]);
+pub struct UnvoicedDFT([Complex32; DFT_HALF]);
 
-impl UnvoicedParts {
+impl UnvoicedDFT {
     pub fn new(params: &BaseParams, voice: &VoiceDecisions, enhanced: &EnhancedSpectrals)
-        -> UnvoicedParts
+        -> UnvoicedDFT
     {
-        let mut parts = [Complex32::new(0.0, 0.0); 256];
+        let mut dft = [Complex32::zero(); DFT_HALF];
 
         let noise = Noise::new();
         let window = window::synthesis_trunc();
 
-        for (l, &m) in enhanced.iter().enumerate() {
+        for (l, &spectral) in enhanced.iter().enumerate() {
             let l = l + 1;
 
             if voice.is_voiced(l) {
@@ -80,53 +48,57 @@ impl UnvoicedParts {
 
             let (lower, upper) = edges(l, params);
 
-            let pos = UnvoicedDFT::new(lower, upper, &noise, &window);
-            let pscale = pos.scale(m);
+            for m in lower..upper {
+                let mut nclone = noise.clone();
 
-            let neg = UnvoicedDFT::new(-upper+1, -lower+1, &noise, &window);
-            let nscale = neg.scale(m);
+                dft[m] = (-104..105).map(|n| {
+                    let inner = 2.0 / DFT_SIZE as f32 * PI * m as f32 * n as f32;
+                    let (sin, cos) = inner.sin_cos();
 
-            pos.iter()
-               .map(|&dft| pscale * dft)
-               .collect_slice(&mut parts[128 + lower as usize..]);
+                    nclone.next() * window.get(n) * Complex32::new(cos, -sin)
+                }).fold(Complex32::zero(), |s, x| s + x)
+            }
 
-            neg.iter()
-               .map(|&dft| nscale * dft)
-               .collect_slice(&mut parts[129 - upper as usize..]);
+            let sum = (lower..upper)
+                .map(|m| dft[m].norm_sqr())
+                .fold(0.0, |s, x| s + x);
+
+            let scale = SCALING_COEF * spectral / (sum / (upper - lower) as f32).sqrt();
+
+            for m in lower..upper {
+                dft[m] = scale * dft[m];
+            }
         }
 
-        UnvoicedParts(parts)
+        UnvoicedDFT(dft)
     }
 
-    // -128 <= m < 128
-    fn get(&self, m: isize) -> Complex32 { self.0[(m + 128) as usize] }
-
     pub fn idft(&self, n: isize) -> f32 {
-        if n < -128 || n > 127 {
+        if n < -(IDFT_HALF as isize) || n >= IDFT_HALF as isize {
             return 0.0;
         }
 
-        (-128..128).map(|m| {
-            let (sin, cos) = (2.0 / 256.0 * PI * m as f32 * n as f32).sin_cos();
-            self.get(m) * Complex32::new(cos, sin)
-        }).fold(Complex32::new(0.0, 0.0), |s, x| s + x).re / 256.0
+        2.0 / (DFT_SIZE as f32 * IDFT_SIZE as f32).sqrt() * (0..DFT_HALF).map(|m| {
+            let (sin, cos) = (2.0 / IDFT_SIZE as f32 * PI * m as f32 * n as f32).sin_cos();
+            self.0[m].re * cos - self.0[m].im * sin
+        }).fold(0.0, |s, x| s + x)
     }
 }
 
-impl Default for UnvoicedParts {
-    fn default() -> UnvoicedParts {
-        UnvoicedParts([Complex32::new(0.0, 0.0); 256])
+impl Default for UnvoicedDFT {
+    fn default() -> UnvoicedDFT {
+        UnvoicedDFT([Complex32::zero(); DFT_HALF])
     }
 }
 
 pub struct Unvoiced<'a, 'b> {
-    cur: &'a UnvoicedParts,
-    prev: &'b UnvoicedParts,
+    cur: &'a UnvoicedDFT,
+    prev: &'b UnvoicedDFT,
     window: window::Window,
 }
 
 impl<'a, 'b> Unvoiced<'a, 'b> {
-    pub fn new(cur: &'a UnvoicedParts, prev: &'b UnvoicedParts) -> Unvoiced<'a, 'b> {
+    pub fn new(cur: &'a UnvoicedDFT, prev: &'b UnvoicedDFT) -> Unvoiced<'a, 'b> {
         Unvoiced {
             cur: cur,
             prev: prev,

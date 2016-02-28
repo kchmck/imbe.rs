@@ -7,7 +7,7 @@ use gain::Gains;
 use params::BaseParams;
 use prev::PrevFrame;
 use spectral::Spectrals;
-use unvoiced::{UnvoicedParts, Unvoiced};
+use unvoiced::{UnvoicedDFT, Unvoiced};
 use voiced::{Phase, PhaseBase, Voiced};
 
 pub struct CAIFrame {
@@ -71,12 +71,12 @@ impl IMBEDecoder {
         let amp_thresh = enhance::amp_thresh(&errors, self.prev.amp_thresh);
         enhance::smooth(&mut enhanced, &mut voice, &errors, &energy, amp_thresh);
 
-        let uparts = UnvoicedParts::new(&params, &voice, &enhanced);
+        let udft = UnvoicedDFT::new(&params, &voice, &enhanced);
         let vbase = PhaseBase::new(&params, &self.prev);
         let vphase = Phase::new(&params, &voice, &vbase);
 
         {
-            let unvoiced = Unvoiced::new(&uparts, &self.prev.unvoiced);
+            let unvoiced = Unvoiced::new(&udft, &self.prev.unvoiced);
             let voiced = Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice);
 
             for n in 0..SAMPLES {
@@ -92,7 +92,7 @@ impl IMBEDecoder {
             err_rate: errors.rate,
             energy: energy,
             amp_thresh: amp_thresh,
-            unvoiced: uparts,
+            unvoiced: udft,
             phase_base: vbase,
             phase: vphase,
         };
@@ -109,11 +109,11 @@ impl IMBEDecoder {
         let voice = self.prev.voice.clone();
         let enhanced = self.prev.enhanced.clone();
 
-        let uparts = UnvoicedParts::new(&params, &voice, &enhanced);
+        let udft = UnvoicedDFT::new(&params, &voice, &enhanced);
         let vbase = PhaseBase::new(&params, &self.prev);
         let vphase = Phase::new(&params, &voice, &vbase);
 
-        let unvoiced = Unvoiced::new(&uparts, &self.prev.unvoiced);
+        let unvoiced = Unvoiced::new(&udft, &self.prev.unvoiced);
         let voiced = Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice);
 
         for n in 0..SAMPLES {

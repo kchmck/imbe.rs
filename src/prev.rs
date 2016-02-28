@@ -2,7 +2,7 @@ use descramble::VoiceDecisions;
 use enhance::{FrameEnergy, EnhancedSpectrals};
 use params::BaseParams;
 use spectral::Spectrals;
-use unvoiced::UnvoicedParts;
+use unvoiced::UnvoicedDFT;
 use voiced::{Phase, PhaseBase};
 
 pub struct PrevFrame {
@@ -13,7 +13,7 @@ pub struct PrevFrame {
     pub err_rate: f32,
     pub energy: FrameEnergy,
     pub amp_thresh: f32,
-    pub unvoiced: UnvoicedParts,
+    pub unvoiced: UnvoicedDFT,
     pub phase_base: PhaseBase,
     pub phase: Phase,
 }
@@ -28,7 +28,7 @@ impl Default for PrevFrame {
             err_rate: 0.0,
             energy: FrameEnergy::default(),
             amp_thresh: 0.0, // not in document
-            unvoiced: UnvoicedParts::default(),
+            unvoiced: UnvoicedDFT::default(),
             phase_base: PhaseBase::default(),
             phase: Phase::default(),
         }
