@@ -1,5 +1,4 @@
 use std::cmp::max;
-use std::f32::consts::PI;
 
 use collect_slice::CollectSlice;
 
@@ -72,7 +71,6 @@ pub struct Voiced<'a, 'b, 'c, 'd> {
     window: window::Window,
     fundamental: f32,
     end: usize,
-    freq_changed: bool,
 }
 
 impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
@@ -80,8 +78,6 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
                enhanced: &'c EnhancedSpectrals, voice: &'d VoiceDecisions)
         -> Voiced<'a, 'b, 'c, 'd>
     {
-        let freq_diff = (params.fundamental - prev.params.fundamental).abs();
-
         Voiced {
             prev: prev,
             phase: phase,
@@ -90,7 +86,6 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
             window: window::synthesis_full(),
             fundamental: params.fundamental,
             end: max(params.harmonics, prev.params.harmonics) as usize + 1,
-            freq_changed: freq_diff >= 0.1 * params.fundamental,
         }
     }
 
@@ -99,11 +94,7 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
             (false, false) => 0.0,
             (false, true) => self.sig_prev(l, n),
             (true, false) => self.sig_cur(l, n),
-            (true, true) => if l >= 8 || self.freq_changed {
-                self.sig_prev(l, n) + self.sig_cur(l, n)
-            } else {
-                self.amplitude(l, n) * self.theta(l, n).cos()
-            },
+            (true, true) => self.sig_prev(l, n) + self.sig_cur(l, n)
         }
     }
 
@@ -119,30 +110,6 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
             self.prev.params.fundamental * n as f32 * l as f32 +
                 self.prev.phase.get(l)
         ).cos()
-    }
-
-    fn amplitude(&self, l: usize, n: isize) -> f32 {
-        self.prev.enhanced.get(l) + n as f32 / SAMPLES as f32 *
-            (self.enhanced.get(l) - self.prev.enhanced.get(l))
-    }
-
-    fn theta(&self, l: usize, n: isize) -> f32 {
-        self.prev.phase.get(l) +
-            (self.prev.params.fundamental * l as f32 + self.freq_change(l)) * n as f32 +
-            (self.fundamental - self.prev.params.fundamental) *
-                l as f32 * (n as f32).powi(2) / (2.0 * SAMPLES as f32)
-    }
-
-    fn phase_change(&self, l: usize) -> f32 {
-        self.phase.get(l) - self.prev.phase.get(l) - (
-            self.prev.params.fundamental + self.fundamental
-        ) * l as f32 * SAMPLES as f32 / 2.0
-    }
-
-    fn freq_change(&self, l: usize) -> f32 {
-        (SAMPLES as f32).recip() * (self.phase_change(l) - 2.0 * PI * (
-            (self.phase_change(l) + PI) / (2.0 * PI)
-        ).floor())
     }
 
     pub fn get(&self, n: usize) -> f32 {
