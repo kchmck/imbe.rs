@@ -94,8 +94,11 @@ impl UnvoicedDFT {
             return 0.0;
         }
 
+        let common = 2.0 / IDFT_SIZE as f32 * PI * n as f32;
+        let mut osc = QuadOsc::new(0.0, common);
+
         2.0 / (DFT_SIZE as f32 * IDFT_SIZE as f32).sqrt() * (0..DFT_HALF).map(|m| {
-            let (sin, cos) = (2.0 / IDFT_SIZE as f32 * PI * m as f32 * n as f32).sin_cos();
+            let (sin, cos) = osc.next();
             self.0[m].re * cos - self.0[m].im * sin
         }).fold(0.0, |s, x| s + x)
     }
