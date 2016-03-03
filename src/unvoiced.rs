@@ -59,11 +59,12 @@ impl UnvoicedDFT {
                 }).fold(Complex32::zero(), |s, x| s + x)
             }
 
-            let sum = (lower..upper)
+            let energy = (lower..upper)
                 .map(|m| dft[m].norm_sqr())
                 .fold(0.0, |s, x| s + x);
+            let power = energy / (upper - lower) as f32;
 
-            let scale = SCALING_COEF * spectral / (sum / (upper - lower) as f32).sqrt();
+            let scale = SCALING_COEF * spectral / power.sqrt();
 
             for m in lower..upper {
                 dft[m] = scale * dft[m];
