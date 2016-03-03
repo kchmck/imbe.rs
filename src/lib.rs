@@ -1,4 +1,5 @@
 extern crate arrayvec;
+extern crate quad_osc;
 extern crate collect_slice;
 extern crate num;
 extern crate rand;

@@ -1,7 +1,9 @@
 use std::f32::consts::PI;
 
+use collect_slice::CollectSlice;
 use num::complex::Complex32;
 use num::traits::Zero;
+use quad_osc::QuadOsc;
 
 use consts::SAMPLES;
 use descramble::VoiceDecisions;
@@ -19,6 +21,10 @@ const IDFT_SIZE: usize = 256;
 const DFT_HALF: usize = DFT_SIZE / 2;
 const IDFT_HALF: usize = IDFT_SIZE / 2;
 
+const SIG_START: isize = -104;
+const SIG_STOP: isize = 105;
+const SIG_SIZE: usize = (SIG_STOP - SIG_START) as usize;
+
 fn edges(l: usize, params: &BaseParams) -> (usize, usize) {
     let common = DFT_SIZE as f32 / (2.0 * PI) * params.fundamental;
 
@@ -34,10 +40,20 @@ impl UnvoicedDFT {
     pub fn new(params: &BaseParams, voice: &VoiceDecisions, enhanced: &EnhancedSpectrals)
         -> UnvoicedDFT
     {
-        let mut dft = [Complex32::zero(); DFT_HALF];
+        let sig = {
+            let mut sig = [0.0; SIG_SIZE];
 
-        let noise = Noise::new();
-        let window = window::synthesis_trunc();
+            let mut noise = Noise::new();
+            let window = window::synthesis_trunc();
+
+            (SIG_START..SIG_STOP)
+                .map(|n| noise.next() * window.get(n))
+                .collect_slice_checked(&mut sig[..]);
+
+            sig
+        };
+
+        let mut dft = [Complex32::zero(); DFT_HALF];
 
         for (l, &spectral) in enhanced.iter().enumerate() {
             let l = l + 1;
@@ -49,13 +65,12 @@ impl UnvoicedDFT {
             let (lower, upper) = edges(l, params);
 
             for m in lower..upper {
-                let mut nclone = noise.clone();
+                let common = 2.0 / DFT_SIZE as f32 * PI * m as f32;
+                let mut osc = QuadOsc::new(common * SIG_START as f32, common);
 
-                dft[m] = (-104..105).map(|n| {
-                    let inner = 2.0 / DFT_SIZE as f32 * PI * m as f32 * n as f32;
-                    let (sin, cos) = inner.sin_cos();
-
-                    nclone.next() * window.get(n) * Complex32::new(cos, -sin)
+                dft[m] = sig.iter().map(|&x| {
+                    let (sin, cos) = osc.next();
+                    x * Complex32::new(cos, -sin)
                 }).fold(Complex32::zero(), |s, x| s + x)
             }
 
