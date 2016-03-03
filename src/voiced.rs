@@ -113,9 +113,9 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
     }
 
     pub fn get(&self, n: usize) -> f32 {
-        2.0 * (1..self.end).map(|l| {
-            self.get_pair(l, n as isize)
-        }).fold(0.0, |s, x| s + x)
+        2.0 * (1..self.end)
+            .map(|l| self.get_pair(l, n as isize))
+            .fold(0.0, |s, x| s + x)
     }
 }
 

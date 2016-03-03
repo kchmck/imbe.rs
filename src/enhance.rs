@@ -18,9 +18,9 @@ impl FrameEnergy {
     pub fn new(spectrals: &Spectrals, prev: &FrameEnergy, params: &BaseParams)
         -> FrameEnergy
     {
-        let m0 = spectrals.iter().map(|&m| {
-            m.powi(2)
-        }).fold(0.0, |s, x| s + x);
+        let m0 = spectrals.iter()
+            .map(|&m| m.powi(2))
+            .fold(0.0, |s, x| s + x);
 
         let m1 = spectrals.iter().enumerate().map(|(l, &m)| {
             let l = l + 1;

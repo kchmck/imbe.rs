@@ -78,7 +78,6 @@ impl UnvoicedDFT {
                 .map(|m| dft[m].norm_sqr())
                 .fold(0.0, |s, x| s + x);
             let power = energy / (upper - lower) as f32;
-
             let scale = SCALING_COEF * spectral / power.sqrt();
 
             for m in lower..upper {
@@ -94,8 +93,7 @@ impl UnvoicedDFT {
             return 0.0;
         }
 
-        let common = 2.0 / IDFT_SIZE as f32 * PI * n as f32;
-        let mut osc = QuadOsc::new(0.0, common);
+        let mut osc = QuadOsc::new(0.0, 2.0 / IDFT_SIZE as f32 * PI * n as f32);
 
         2.0 / (DFT_SIZE as f32 * IDFT_SIZE as f32).sqrt() * (0..DFT_HALF).map(|m| {
             let (sin, cos) = osc.next();
