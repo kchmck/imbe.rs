@@ -124,7 +124,7 @@ mod test {
     use super::*;
     use params::BaseParams;
     use prev::PrevFrame;
-    use descramble::{descramble, Bootstrap};
+    use descramble::Bootstrap;
 
     #[test]
     fn test_phase_base() {

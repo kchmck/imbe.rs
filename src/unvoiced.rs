@@ -139,7 +139,6 @@ impl<'a, 'b> Unvoiced<'a, 'b> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use super::edges;
     use descramble::Bootstrap;
     use params::BaseParams;
