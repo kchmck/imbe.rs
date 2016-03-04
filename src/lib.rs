@@ -3,6 +3,7 @@ extern crate collect_slice;
 extern crate num;
 extern crate quad_osc;
 extern crate rand;
+extern crate thread_scoped;
 
 pub mod decoder;
 pub mod consts;

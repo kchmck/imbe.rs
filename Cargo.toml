@@ -9,3 +9,4 @@ num = "0.1.29"
 collect_slice = "1.0.0"
 rand = "0.3"
 quad_osc = {version = "1.0.0", path = "../quad_osc"}
+thread-scoped = "1.0.1"

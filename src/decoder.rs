@@ -1,4 +1,8 @@
+use std::sync::Arc;
+
+use arrayvec::ArrayVec;
 use collect_slice::CollectSlice;
+use thread_scoped;
 
 use coefs::Coefficients;
 use consts::SAMPLES;
@@ -11,6 +15,8 @@ use prev::PrevFrame;
 use spectral::Spectrals;
 use unvoiced::{UnvoicedDFT, Unvoiced};
 use voiced::{Phase, PhaseBase, Voiced};
+
+const THREADS: usize = 4;
 
 pub struct CAIFrame {
     chunks: [u32; 8],
@@ -78,12 +84,28 @@ impl IMBEDecoder {
         let vphase = Phase::new(&params, &voice, &vbase);
 
         {
-            let unvoiced = Unvoiced::new(&udft, &self.prev.unvoiced);
-            let voiced = Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice);
+            let unvoiced = Arc::new(Unvoiced::new(&udft, &self.prev.unvoiced));
+            let voiced = Arc::new(Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice));
 
-            (0..SAMPLES)
-                .map(|n| unvoiced.get(n) + voiced.get(n))
-                .collect_slice(&mut buf[..]);
+            let mut threads = buf.chunks_mut(SAMPLES / THREADS).enumerate().map(|(i, chunk)| {
+                let u = unvoiced.clone();
+                let v = voiced.clone();
+
+                let start = i * SAMPLES / THREADS;
+                let stop = start + SAMPLES / THREADS;
+
+                unsafe {
+                    thread_scoped::scoped(move || {
+                        (start..stop)
+                            .map(|n| u.get(n) + v.get(n))
+                            .collect_slice(&mut chunk[..]);
+                    })
+                }
+            }).collect::<ArrayVec<[thread_scoped::JoinGuard<()>; THREADS]>>();
+
+            for thread in threads.drain(..) {
+                thread.join();
+            }
         }
 
         self.prev = PrevFrame {
