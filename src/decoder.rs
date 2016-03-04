@@ -1,3 +1,5 @@
+use collect_slice::CollectSlice;
+
 use coefs::Coefficients;
 use consts::SAMPLES;
 use descramble::{descramble, Bootstrap};
@@ -35,15 +37,15 @@ impl IMBEDecoder {
         }
     }
 
-    pub fn decode<F: FnMut(f32)>(&mut self, frame: CAIFrame, mut cb: F) {
+    pub fn decode(&mut self, frame: CAIFrame, buf: &mut [f32; SAMPLES]) {
         let period = match Bootstrap::new(&frame.chunks) {
             Bootstrap::Period(p) => p,
             Bootstrap::Invalid => {
-                self.repeat(cb);
+                self.repeat(buf);
                 return;
             },
             Bootstrap::Silence => {
-                self.silence(cb);
+                self.silence(buf);
                 return;
             },
         };
@@ -51,12 +53,12 @@ impl IMBEDecoder {
         let errors = Errors::new(&frame.errors, self.prev.err_rate);
 
         if enhance::should_repeat(&errors) {
-            self.repeat(cb);
+            self.repeat(buf);
             return;
         }
 
         if enhance::should_mute(&errors) {
-            self.silence(cb);
+            self.silence(buf);
             return;
         }
 
@@ -79,9 +81,9 @@ impl IMBEDecoder {
             let unvoiced = Unvoiced::new(&udft, &self.prev.unvoiced);
             let voiced = Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice);
 
-            for n in 0..SAMPLES {
-                cb(unvoiced.get(n) + voiced.get(n));
-            }
+            (0..SAMPLES)
+                .map(|n| unvoiced.get(n) + voiced.get(n))
+                .collect_slice(&mut buf[..]);
         }
 
         self.prev = PrevFrame {
@@ -98,13 +100,11 @@ impl IMBEDecoder {
         };
     }
 
-    fn silence<F: FnMut(f32)>(&self, mut cb: F) {
-        for _ in 0..SAMPLES {
-            cb(0.0);
-        }
+    fn silence(&self, buf: &mut [f32; SAMPLES]) {
+        (0..SAMPLES).map(|_| 0.0).collect_slice(&mut buf[..]);
     }
 
-    fn repeat<F: FnMut(f32)>(&self, mut cb: F) {
+    fn repeat(&self, buf: &mut [f32; SAMPLES]) {
         let params = self.prev.params.clone();
         let voice = self.prev.voice.clone();
         let enhanced = self.prev.enhanced.clone();
@@ -116,8 +116,8 @@ impl IMBEDecoder {
         let unvoiced = Unvoiced::new(&udft, &self.prev.unvoiced);
         let voiced = Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice);
 
-        for n in 0..SAMPLES {
-            cb(unvoiced.get(n) + voiced.get(n));
-        }
+        (0..SAMPLES)
+            .map(|n| unvoiced.get(n) + voiced.get(n))
+            .collect_slice(&mut buf[..]);
     }
 }
