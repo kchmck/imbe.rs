@@ -2,10 +2,6 @@ pub fn synthesis_full() -> Window {
     Window::new(&WINDOW_SYNTHESIS[..])
 }
 
-pub fn synthesis_trunc() -> Window {
-    Window::new(&WINDOW_SYNTHESIS[1..WINDOW_SYNTHESIS.len()-1])
-}
-
 pub struct Window {
     coefs: &'static [f32],
     offset: isize,
@@ -247,30 +243,17 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_syn_trunc() {
-        let w = synthesis_trunc();
-
-        assert_eq!(w.get(-200), 0.0);
-        assert_eq!(w.get(-105), 0.0);
-        assert_eq!(w.get(-104), 0.02);
-        assert_eq!(w.get(-56), 0.98);
-        assert_eq!(w.get(-88), 0.34);
-        assert_eq!(w.get(0), 1.0);
-        assert_eq!(w.get(104), 0.02);
-        assert_eq!(w.get(105), 0.0);
-        assert_eq!(w.get(200), 0.0);
-    }
-
-    #[test]
     fn test_syn_full() {
         let w = synthesis_full();
 
         assert_eq!(w.get(-200), 0.0);
         assert_eq!(w.get(-106), 0.0);
         assert_eq!(w.get(-105), 0.0);
+        assert_eq!(w.get(-104), 0.02);
         assert_eq!(w.get(-68), 0.74);
         assert_eq!(w.get(0), 1.0);
         assert_eq!(w.get(77), 0.56);
+        assert_eq!(w.get(104), 0.02);
         assert_eq!(w.get(105), 0.0);
         assert_eq!(w.get(106), 0.0);
         assert_eq!(w.get(200), 0.0);

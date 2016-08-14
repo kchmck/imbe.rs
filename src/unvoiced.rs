@@ -44,7 +44,7 @@ impl UnvoicedDFT {
             let mut sig = [0.0; SIG_SIZE];
 
             let mut noise = Noise::new();
-            let window = window::synthesis_trunc();
+            let window = window::synthesis_full();
 
             (SIG_START..SIG_STOP)
                 .map(|n| noise.next() * window.get(n))
