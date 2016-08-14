@@ -83,7 +83,7 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
             phase: phase,
             enhanced: enhanced,
             voice: voice,
-            window: window::synthesis_full(),
+            window: window::synthesis(),
             fundamental: params.fundamental,
             end: max(params.harmonics, prev.params.harmonics) as usize + 1,
         }

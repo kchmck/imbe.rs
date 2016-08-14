@@ -1,4 +1,4 @@
-pub fn synthesis_full() -> Window {
+pub fn synthesis() -> Window {
     Window::new(&WINDOW_SYNTHESIS[..])
 }
 
@@ -243,8 +243,8 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_syn_full() {
-        let w = synthesis_full();
+    fn test_synth() {
+        let w = synthesis();
 
         assert_eq!(w.get(-200), 0.0);
         assert_eq!(w.get(-106), 0.0);
