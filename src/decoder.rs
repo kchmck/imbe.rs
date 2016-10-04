@@ -16,7 +16,10 @@ use spectral::Spectrals;
 use unvoiced::{UnvoicedDFT, Unvoiced};
 use voiced::{Phase, PhaseBase, Voiced};
 
+/// Number of threads to spin up per frame.
 const THREADS: usize = 4;
+/// Number of samples to process in each thread.
+const SAMPLES_PER_THREAD: usize = SAMPLES_PER_FRAME / THREADS;
 
 pub struct CAIFrame {
     chunks: [u32; 8],
@@ -87,12 +90,12 @@ impl IMBEDecoder {
             let unvoiced = Arc::new(Unvoiced::new(&udft, &self.prev.unvoiced));
             let voiced = Arc::new(Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice));
 
-            let mut threads = buf.chunks_mut(SAMPLES_PER_FRAME / THREADS).enumerate().map(|(i, chunk)| {
+            let mut threads = buf.chunks_mut(SAMPLES_PER_THREAD).enumerate().map(|(i, chunk)| {
                 let u = unvoiced.clone();
                 let v = voiced.clone();
 
-                let start = i * SAMPLES_PER_FRAME / THREADS;
-                let stop = start + SAMPLES_PER_FRAME / THREADS;
+                let start = i * SAMPLES_PER_THREAD;
+                let stop = start + SAMPLES_PER_THREAD;
 
                 unsafe {
                     thread_scoped::scoped(move || {
@@ -141,5 +144,16 @@ impl IMBEDecoder {
         (0..SAMPLES_PER_FRAME)
             .map(|n| unvoiced.get(n) + voiced.get(n))
             .collect_slice(&mut buf[..]);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::THREADS;
+    use consts::SAMPLES_PER_FRAME;
+
+    #[test]
+    fn verify_threads() {
+        assert!(SAMPLES_PER_FRAME % THREADS == 0);
     }
 }
