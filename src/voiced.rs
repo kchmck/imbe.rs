@@ -2,7 +2,7 @@ use std::cmp::max;
 
 use collect_slice::CollectSlice;
 
-use consts::SAMPLES;
+use consts::SAMPLES_PER_FRAME;
 use descramble::VoiceDecisions;
 use enhance::EnhancedSpectrals;
 use noise::Noise;
@@ -16,7 +16,7 @@ impl PhaseBase {
     pub fn new(params: &BaseParams, prev: &PrevFrame) -> PhaseBase {
         let mut phase_base = [0.0; 56];
         let common = (prev.params.fundamental + params.fundamental) *
-            SAMPLES as f32 / 2.0;
+            SAMPLES_PER_FRAME as f32 / 2.0;
 
         (1..57).map(|l| {
             prev.phase_base.get(l) + common * l as f32
@@ -99,8 +99,8 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
     }
 
     fn sig_cur(&self, l: usize, n: isize) -> f32 {
-        self.window.get(n - SAMPLES as isize) * self.enhanced.get(l) * (
-            self.fundamental * (n - SAMPLES as isize) as f32 * l as f32 +
+        self.window.get(n - SAMPLES_PER_FRAME as isize) * self.enhanced.get(l) * (
+            self.fundamental * (n - SAMPLES_PER_FRAME as isize) as f32 * l as f32 +
                 self.phase.get(l)
         ).cos()
     }

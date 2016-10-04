@@ -1,8 +1,7 @@
-// Audio samples per second
+/// Audio samples per second
 pub const SAMPLE_RATE: usize = 8000;
-
-// Samples per voiced/unvoiced frame
-pub const SAMPLES: usize = 160;
+/// Samples per voiced/unvoiced frame
+pub const SAMPLES_PER_FRAME: usize = 160;
 
 #[cfg(test)]
 mod test {
@@ -11,6 +10,6 @@ mod test {
     #[test]
     fn test_duration() {
         // Verify it's 20ms.
-        assert_eq!(SAMPLES * 1000 / SAMPLE_RATE, 20);
+        assert_eq!(SAMPLES_PER_FRAME * 1000 / SAMPLE_RATE, 20);
     }
 }

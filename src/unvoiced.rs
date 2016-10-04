@@ -5,7 +5,7 @@ use num::complex::Complex32;
 use num::traits::Zero;
 use quad_osc::QuadOsc;
 
-use consts::SAMPLES;
+use consts::SAMPLES_PER_FRAME;
 use descramble::VoiceDecisions;
 use enhance::EnhancedSpectrals;
 use noise::Noise;
@@ -127,9 +127,9 @@ impl<'a, 'b> Unvoiced<'a, 'b> {
         let n = n as isize;
 
         let numer = self.window.get(n) * self.prev.idft(n) +
-            self.window.get(n - SAMPLES as isize) * self.cur.idft(n - SAMPLES as isize);
+            self.window.get(n - SAMPLES_PER_FRAME as isize) * self.cur.idft(n - SAMPLES_PER_FRAME as isize);
         let denom = self.window.get(n).powi(2) +
-            self.window.get(n - SAMPLES as isize).powi(2);
+            self.window.get(n - SAMPLES_PER_FRAME as isize).powi(2);
 
         numer / denom
     }

@@ -5,7 +5,7 @@ use collect_slice::CollectSlice;
 use thread_scoped;
 
 use coefs::Coefficients;
-use consts::SAMPLES;
+use consts::SAMPLES_PER_FRAME;
 use descramble::{descramble, Bootstrap};
 use enhance::{self, EnhancedSpectrals, FrameEnergy};
 use errors::Errors;
@@ -43,7 +43,7 @@ impl IMBEDecoder {
         }
     }
 
-    pub fn decode(&mut self, frame: CAIFrame, buf: &mut [f32; SAMPLES]) {
+    pub fn decode(&mut self, frame: CAIFrame, buf: &mut [f32; SAMPLES_PER_FRAME]) {
         let period = match Bootstrap::new(&frame.chunks) {
             Bootstrap::Period(p) => p,
             Bootstrap::Invalid => {
@@ -87,12 +87,12 @@ impl IMBEDecoder {
             let unvoiced = Arc::new(Unvoiced::new(&udft, &self.prev.unvoiced));
             let voiced = Arc::new(Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice));
 
-            let mut threads = buf.chunks_mut(SAMPLES / THREADS).enumerate().map(|(i, chunk)| {
+            let mut threads = buf.chunks_mut(SAMPLES_PER_FRAME / THREADS).enumerate().map(|(i, chunk)| {
                 let u = unvoiced.clone();
                 let v = voiced.clone();
 
-                let start = i * SAMPLES / THREADS;
-                let stop = start + SAMPLES / THREADS;
+                let start = i * SAMPLES_PER_FRAME / THREADS;
+                let stop = start + SAMPLES_PER_FRAME / THREADS;
 
                 unsafe {
                     thread_scoped::scoped(move || {
@@ -122,11 +122,11 @@ impl IMBEDecoder {
         };
     }
 
-    fn silence(&self, buf: &mut [f32; SAMPLES]) {
-        (0..SAMPLES).map(|_| 0.0).collect_slice(&mut buf[..]);
+    fn silence(&self, buf: &mut [f32; SAMPLES_PER_FRAME]) {
+        (0..SAMPLES_PER_FRAME).map(|_| 0.0).collect_slice(&mut buf[..]);
     }
 
-    fn repeat(&self, buf: &mut [f32; SAMPLES]) {
+    fn repeat(&self, buf: &mut [f32; SAMPLES_PER_FRAME]) {
         let params = self.prev.params.clone();
         let voice = self.prev.voice.clone();
         let enhanced = self.prev.enhanced.clone();
@@ -138,7 +138,7 @@ impl IMBEDecoder {
         let unvoiced = Unvoiced::new(&udft, &self.prev.unvoiced);
         let voiced = Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice);
 
-        (0..SAMPLES)
+        (0..SAMPLES_PER_FRAME)
             .map(|n| unvoiced.get(n) + voiced.get(n))
             .collect_slice(&mut buf[..]);
     }
