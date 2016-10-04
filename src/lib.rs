@@ -1,3 +1,5 @@
+#![feature(inclusive_range_syntax)]
+
 extern crate arrayvec;
 extern crate collect_slice;
 extern crate num;

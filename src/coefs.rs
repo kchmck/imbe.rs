@@ -17,7 +17,7 @@ impl Coefficients {
 
         for block in 1..7 {
             let c = CoefBlock::new(block, gains, amps, params);
-            coefs.extend((1..c.len()+1).map(|j| c.idct(j)));
+            coefs.extend((1...c.len()).map(|j| c.idct(j)));
         }
 
         Coefficients(coefs)
@@ -65,7 +65,7 @@ impl CoefBlock {
     pub fn idct(&self, j: usize) -> f32 {
         assert!(j >= 1 && j <= self.len());
 
-        self.0[0] + 2.0 * (2..self.len() + 1).map(|k| {
+        self.0[0] + 2.0 * (2...self.len()).map(|k| {
             self.0[k - 1] * (
                 PI * (k as f32 - 1.0) * (j as f32 - 0.5) / self.len() as f32
             ).cos()

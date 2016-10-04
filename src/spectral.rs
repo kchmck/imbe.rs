@@ -25,13 +25,13 @@ impl Spectrals {
         let pred = (0.03 * params.harmonics as f32 - 0.05).max(0.4).min(0.7);
         let pred_scaled = pred / params.harmonics as f32;
 
-        let sum = (1..params.harmonics+1).map(|lambda| {
+        let sum = (1...params.harmonics).map(|lambda| {
             let (k, dec) = indexes(lambda);
             (1.0 - dec) * prev.spectrals.get(k).log2() +
                 dec * prev.spectrals.get(k + 1).log2()
         }).fold(0.0, |s, x| s + x);
 
-        for l in 1..params.harmonics+1 {
+        for l in 1...params.harmonics {
             let (k, dec) = indexes(l);
 
             spectral.push((

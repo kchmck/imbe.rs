@@ -44,9 +44,9 @@ impl Phase {
 
         let trans = params.harmonics as usize / 4;
 
-        (1..trans+1).map(|l| {
+        (1...trans).map(|l| {
             base.get(l)
-        }).chain((trans+1..57).map(|l| {
+        }).chain((trans+1...56).map(|l| {
             base.get(l) + voice.unvoiced_count as f32 * noise.next_phase() /
                 params.harmonics as f32
         })).collect_slice_checked(&mut phase[..]);
