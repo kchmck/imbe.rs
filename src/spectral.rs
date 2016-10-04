@@ -16,10 +16,7 @@ impl Spectrals {
 
         let indexes = |x: u32| {
             let k = prev.params.harmonics as f32 / params.harmonics as f32 * x as f32;
-            let int = k.floor();
-            let dec = k - int;
-
-            (int as usize, dec)
+            (k.trunc() as usize, k.fract())
         };
 
         let pred = (0.03 * params.harmonics as f32 - 0.05).max(0.4).min(0.7);
