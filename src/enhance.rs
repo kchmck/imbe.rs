@@ -84,10 +84,11 @@ impl EnhancedSpectrals {
     }
 
     pub fn get(&self, l: usize) -> f32 {
-        if l > self.0.len() {
-            0.0
-        } else {
-            self.0[l - 1]
+        assert!(l >= 1);
+
+        match self.0.get(l - 1) {
+            Some(&s) => s,
+            None => 0.0,
         }
     }
 }
