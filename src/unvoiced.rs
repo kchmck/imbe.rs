@@ -55,7 +55,7 @@ impl UnvoicedDFT {
 
         let mut dft = [Complex32::zero(); DFT_HALF];
 
-        for (l, &spectral) in enhanced.iter().enumerate() {
+        for (l, &amplitude) in enhanced.iter().enumerate() {
             let l = l + 1;
 
             if voice.is_voiced(l) {
@@ -78,7 +78,7 @@ impl UnvoicedDFT {
                 .map(|m| dft[m].norm_sqr())
                 .fold(0.0, |s, x| s + x);
             let power = energy / (upper - lower) as f32;
-            let scale = SCALING_COEF * spectral / power.sqrt();
+            let scale = SCALING_COEF * amplitude / power.sqrt();
 
             for m in lower..upper {
                 dft[m] = scale * dft[m];
