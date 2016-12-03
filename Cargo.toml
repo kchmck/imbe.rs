@@ -8,5 +8,5 @@ arrayvec = "^0.3.12"
 num = "^0.1.34"
 collect_slice = "^1.0.0"
 rand = "^0.3"
-quad_osc = {version = "^1.0.0", path = "../quad_osc"}
+quad_osc = {version = "^1.0.0", git = "https://github.com/kchmck/quad_osc.rs"}
 thread-scoped = "^1.0.1"
