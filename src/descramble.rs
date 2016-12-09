@@ -63,7 +63,7 @@ pub struct QuantizedAmplitudes(ArrayVec<[u32; 64]>);
 
 impl QuantizedAmplitudes {
     fn new(mut scan: ScanBits, params: &BaseParams) -> QuantizedAmplitudes {
-        let mut amps: ArrayVec<[u32; 64]> = (0..params.harmonics-1).map(|_| 0).collect();
+        let mut amps: ArrayVec<[u32; 64]> = (1..params.harmonics).map(|_| 0).collect();
         let (max, bits) = allocs(params.harmonics);
 
         for idx in (0..max).rev() {
