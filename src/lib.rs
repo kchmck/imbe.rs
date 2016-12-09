@@ -17,7 +17,6 @@ mod descramble;
 mod enhance;
 mod errors;
 mod gain;
-mod noise;
 mod params;
 mod prev;
 mod scan;
