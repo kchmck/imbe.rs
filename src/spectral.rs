@@ -29,18 +29,16 @@ impl Spectrals {
                 dec * prev.spectrals.get(k + 1).log2()
         }).fold(0.0, |s, x| s + x);
 
-        for l in 1...params.harmonics {
+        Spectrals((1...params.harmonics).map(|l| {
             let (k, dec) = indexes(l);
 
-            spectral.push((
+            (
                 coefs.get(l as usize) +
                     pred * (1.0 - dec) * prev.spectrals.get(k).log2() +
                     pred * dec * prev.spectrals.get(k + 1).log2() -
                     pred_scaled * sum
-            ).exp2());
-        }
-
-        Spectrals(spectral)
+            ).exp2()
+        }).collect())
     }
 
     pub fn get(&self, l: usize) -> f32 {
