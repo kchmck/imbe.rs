@@ -18,7 +18,7 @@ impl PhaseBase {
         let common = (prev.params.fundamental + params.fundamental) *
             SAMPLES_PER_FRAME as f32 / 2.0;
 
-        (1..57).map(|l| {
+        (1...MAX_HARMONICS).map(|l| {
             prev.phase_base.get(l) + common * l as f32
         }).collect_slice_checked(&mut phase_base[..]);
 
@@ -85,7 +85,7 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
             voice: voice,
             window: window::synthesis(),
             fundamental: params.fundamental,
-            end: max(params.harmonics, prev.params.harmonics) as usize + 1,
+            end: max(params.harmonics, prev.params.harmonics) as usize,
         }
     }
 
@@ -113,7 +113,7 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
     }
 
     pub fn get(&self, n: usize) -> f32 {
-        2.0 * (1..self.end)
+        2.0 * (1...self.end)
             .map(|l| self.get_pair(l, n as isize))
             .fold(0.0, |s, x| s + x)
     }
