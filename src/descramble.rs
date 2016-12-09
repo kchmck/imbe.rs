@@ -53,8 +53,10 @@ fn period(chunks: &Chunks) -> u8 {
     (chunks[0] >> 4) as u8 & 0b11111100 | (chunks[7] >> 1) as u8 & 0b11
 }
 
+/// Compute the 6-bit index, b<sub>2</sub>, used to look up the quantized gain value [p30].
 fn gain_idx(chunks: &Chunks, idx_part: u32) -> usize {
-    (chunks[0] & 0x38 | idx_part << 1 | chunks[7] >> 3 & 1) as usize
+    // Concatenate bits 5 through 3 of u_0, the two index bits, and bit 3 of u_7 [p39].
+    (chunks[0] & 0b111000 | idx_part << 1 | chunks[7] >> 3 & 1) as usize
 }
 
 pub struct QuantizedAmplitudes(ArrayVec<[u32; 64]>);
@@ -369,5 +371,37 @@ mod tests {
 
         assert_eq!(p.harmonics, 10);
         amps.get(12);
+    }
+
+    #[test]
+    fn test_gain_idx() {
+        let chunks = [
+            0b111111010111,
+            0b111111111111,
+            0b111111111111,
+            0b111111111111,
+            0b11111111111,
+            0b11111111111,
+            0b11111111111,
+            0b1110111,
+        ];
+
+        assert_eq!(gain_idx(&chunks, 0b01), 0b010010);
+    }
+
+    #[test]
+    fn test_period() {
+        let chunks = [
+            0b010101111111,
+            0b111111111111,
+            0b111111111111,
+            0b111111111111,
+            0b11111111111,
+            0b11111111111,
+            0b11111111111,
+            0b1111011,
+        ];
+
+        assert_eq!(period(&chunks), 0b01010101);
     }
 }
