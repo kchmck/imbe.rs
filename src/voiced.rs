@@ -1,11 +1,12 @@
 use std::cmp::max;
+use std::f32::consts::PI;
 
 use collect_slice::CollectSlice;
+use rand::Rng;
 
 use consts::{SAMPLES_PER_FRAME, MAX_HARMONICS};
 use descramble::VoiceDecisions;
 use enhance::EnhancedSpectrals;
-use noise::Noise;
 use params::BaseParams;
 use prev::PrevFrame;
 use window;
@@ -38,18 +39,19 @@ impl Default for PhaseBase {
 pub struct Phase([f32; MAX_HARMONICS]);
 
 impl Phase {
-    pub fn new(params: &BaseParams, voice: &VoiceDecisions, base: &PhaseBase) -> Phase {
-        let mut noise = Noise::new();
+    pub fn new<R: Rng>(params: &BaseParams, voice: &VoiceDecisions, base: &PhaseBase,
+                       mut noise: R)
+        -> Phase
+    {
         let mut phase = [0.0; MAX_HARMONICS];
+        (&mut phase[..]).copy_from_slice(&base.0[..]);
 
-        let trans = params.harmonics as usize / 4;
+        let start = params.harmonics as usize / 4 + 1;
 
-        (1...trans).map(|l| {
-            base.get(l)
-        }).chain((trans+1...MAX_HARMONICS).map(|l| {
-            base.get(l) + voice.unvoiced_count as f32 * noise.next_phase() /
-                params.harmonics as f32
-        })).collect_slice_checked(&mut phase[..]);
+        for l in start...MAX_HARMONICS {
+            phase[l - 1] += voice.unvoiced_count as f32 /
+                params.harmonics as f32 * noise.gen_range(-PI, PI);
+        }
 
         Phase(phase)
     }

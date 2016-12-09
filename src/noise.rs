@@ -18,8 +18,4 @@ impl Noise {
     pub fn next(&mut self) -> f32 {
         self.0.next_f32()
     }
-
-    pub fn next_phase(&mut self) -> f32 {
-        self.0.gen_range(-PI, PI)
-    }
 }
