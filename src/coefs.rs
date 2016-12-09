@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use arrayvec::ArrayVec;
 
 use allocs::allocs;
-use consts::MAX_HARMONICS;
+use consts::{MIN_HARMONICS, MAX_HARMONICS};
 use descramble::QuantizedAmplitudes;
 use gain::Gains;
 use params::BaseParams;
@@ -38,7 +38,7 @@ impl CoefBlock {
         let mut coefs = ArrayVec::new();
 
         let (_, alloc) = allocs(params.harmonics);
-        let amps_used = AMPS_USED[params.harmonics as usize - 9];
+        let amps_used = AMPS_USED[params.harmonics as usize - MIN_HARMONICS];
 
         coefs.push(gains.idct(block));
 

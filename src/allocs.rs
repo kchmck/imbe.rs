@@ -1,5 +1,7 @@
+use consts::MIN_HARMONICS;
+
 pub fn allocs(harmonics: u32) -> (u8, &'static [u8; 55]) {
-    let idx = harmonics as usize - 9;
+    let idx = harmonics as usize - MIN_HARMONICS;
     (MAX_BITS[idx], &BITS[idx])
 }
 
