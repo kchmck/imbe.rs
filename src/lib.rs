@@ -8,8 +8,9 @@ extern crate quad_osc;
 extern crate rand;
 extern crate thread_scoped;
 
-pub mod decoder;
 pub mod consts;
+pub mod decoder;
+pub mod frame;
 
 mod allocs;
 mod chunk;

@@ -1,7 +1,5 @@
 use params::BaseParams;
-
-/// Represents the bit vectors u<sub>0</sub>, ..., u<sub>7</sub>, in that order.
-pub type Chunks = [u32; 8];
+use frame::Chunks;
 
 /// Decodes voiced/unvoiced decisions and the quantized gain index fragment from
 /// prioritized chunks.

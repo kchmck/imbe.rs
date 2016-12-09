@@ -10,6 +10,7 @@ use consts::SAMPLES_PER_FRAME;
 use descramble::{descramble, Bootstrap};
 use enhance::{self, EnhancedSpectrals, FrameEnergy};
 use errors::Errors;
+use frame::ReceivedFrame;
 use gain::Gains;
 use params::BaseParams;
 use prev::PrevFrame;
@@ -22,19 +23,6 @@ const THREADS: usize = 4;
 /// Number of samples to process in each thread.
 const SAMPLES_PER_THREAD: usize = SAMPLES_PER_FRAME / THREADS;
 
-pub struct CAIFrame {
-    chunks: [u32; 8],
-    errors: [usize; 7],
-}
-
-impl CAIFrame {
-    pub fn new(chunks: [u32; 8], errors: [usize; 7]) -> CAIFrame {
-        CAIFrame {
-            chunks: chunks,
-            errors: errors,
-        }
-    }
-}
 
 pub struct IMBEDecoder {
     prev: PrevFrame,
@@ -47,7 +35,7 @@ impl IMBEDecoder {
         }
     }
 
-    pub fn decode(&mut self, frame: CAIFrame, buf: &mut [f32; SAMPLES_PER_FRAME]) {
+    pub fn decode(&mut self, frame: ReceivedFrame, buf: &mut [f32; SAMPLES_PER_FRAME]) {
         let period = match Bootstrap::new(&frame.chunks) {
             Bootstrap::Period(p) => p,
             Bootstrap::Invalid => {

@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use params::BaseParams;
-use chunk::Chunks;
+use frame::Chunks;
 
 pub struct ScanChunks<'a> {
     pos: Range<u8>,

@@ -2,10 +2,11 @@ use arrayvec::ArrayVec;
 
 use std::cmp::min;
 
+use allocs::allocs;
+use chunk::ChunkParts;
+use frame::Chunks;
 use params::BaseParams;
 use scan::{ScanBits, ScanChunks};
-use chunk::{Chunks, ChunkParts};
-use allocs::allocs;
 
 pub fn descramble(chunks: &Chunks, params: &BaseParams) ->
     (QuantizedAmplitudes, VoiceDecisions, usize)
