@@ -60,8 +60,8 @@ impl<'a> Iterator for ScanChunks<'a> {
     type Item = (u32, u8);
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(match self.pos.next() {
-            Some(n) => match n {
+        self.pos.next().map(|n| {
+            match n {
                 0 => (self.chunks[0] & 0b111, 3),
                 1 => (self.chunks[1], 12),
                 2 => (self.chunks[2], 12),
@@ -70,8 +70,7 @@ impl<'a> Iterator for ScanChunks<'a> {
                 5 => (self.chunks[6], 11),
                 6 => (self.chunks[7] >> 4, 3),
                 _ => unreachable!()
-            },
-            None => return None,
+            }
         })
     }
 }
