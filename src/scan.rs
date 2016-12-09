@@ -38,36 +38,48 @@ impl ScanSep {
     }
 }
 
+/// Iterates over the chunks covered in the scanning procedure [p39].
 pub struct ScanChunks<'a> {
-    pos: Range<u8>,
+    /// Chunks to scan.
     chunks: &'a Chunks,
-    scanned: u32,
-    scanned_len: u8,
+    /// Separator chunk and its length in bits.
+    sep: (u32, u8),
+    /// Current chunk in scan.
+    pos: Range<u8>,
 }
 
 impl<'a> ScanChunks<'a> {
-    pub fn new(chunks: &'a Chunks, scanned: u32, params: &BaseParams) -> ScanChunks<'a> {
+    /// Create a new `ScanChunks` iterator over the given chunks.
+    pub fn new(chunks: &'a Chunks, sep: u32, params: &BaseParams) -> Self {
         ScanChunks {
-            pos: 0..7,
             chunks: chunks,
-            scanned: scanned,
-            scanned_len: (20 - params.bands) as u8,
+            // 22 - (K + 2) = 20 - K.
+            sep: (sep, (20 - params.bands) as u8),
+            // Each scan is made up of 7 chunks, each in whole or partial form.
+            pos: 0..7,
         }
     }
 }
 
+/// At each iteration, yield a chunk of bits along with the number of LSBs to use from the
+/// chunk.
 impl<'a> Iterator for ScanChunks<'a> {
     type Item = (u32, u8);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.pos.next().map(|n| {
             match n {
+                // Last 3 LSBs of u_0.
                 0 => (self.chunks[0] & 0b111, 3),
+                // All of u_1, u_2, and u_3.
                 1 => (self.chunks[1], 12),
                 2 => (self.chunks[2], 12),
                 3 => (self.chunks[3], 12),
-                4 => (self.scanned, self.scanned_len),
+                // Some LSBs of u_4/u_5.
+                4 => self.sep,
+                // All of u_6.
                 5 => (self.chunks[6], 11),
+                // First 3 MSBs of u_7.
                 6 => (self.chunks[7] >> 4, 3),
                 _ => unreachable!()
             }
@@ -75,14 +87,19 @@ impl<'a> Iterator for ScanChunks<'a> {
     }
 }
 
+/// Sequentially extracts the bits scanned into prioritized chunks.
 pub struct ScanBits<'a> {
+    /// Chunks in the scan.
     chunks: ScanChunks<'a>,
+    /// Current chunk bits, stored starting at the MSB.
     chunk: u32,
+    /// Bits remaining to yield from the current chunk.
     remain: u8,
 }
 
 impl<'a> ScanBits<'a> {
-    pub fn new(chunks: ScanChunks<'a>) -> ScanBits<'a> {
+    /// Create a new `ScanBits` iterator over the given scan chunks.
+    pub fn new(chunks: ScanChunks<'a>) -> Self {
         ScanBits {
             chunks: chunks,
             chunk: 0,
@@ -91,6 +108,7 @@ impl<'a> ScanBits<'a> {
     }
 }
 
+/// At each iteration, yield the next single bit in the scan.
 impl<'a> Iterator for ScanBits<'a> {
     type Item = u32;
 
@@ -104,9 +122,11 @@ impl<'a> Iterator for ScanBits<'a> {
             self.chunk = c;
             self.remain = r;
 
+            // Move bits to MSB of 32-bit word.
             self.chunk <<= 32 - self.remain;
         }
 
+        // Extract the MSB and shift it off.
         let bit = self.chunk >> 31;
         self.chunk <<= 1;
         self.remain -= 1;
