@@ -112,10 +112,13 @@ impl<'a, 'b> Unvoiced<'a, 'b> {
     }
 
     pub fn get(&self, n: usize) -> f32 {
+        debug_assert!(n < SAMPLES_PER_FRAME);
+
         let n = n as isize;
 
         let numer = self.window.get(n) * self.prev.idft(n) +
-            self.window.get(n - SAMPLES_PER_FRAME as isize) * self.cur.idft(n - SAMPLES_PER_FRAME as isize);
+            self.window.get(n - SAMPLES_PER_FRAME as isize) *
+                self.cur.idft(n - SAMPLES_PER_FRAME as isize);
         let denom = self.window.get(n).powi(2) +
             self.window.get(n - SAMPLES_PER_FRAME as isize).powi(2);
 
