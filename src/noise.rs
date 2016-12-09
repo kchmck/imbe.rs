@@ -14,8 +14,4 @@ impl Noise {
     pub fn new_rng(rng: XorShiftRng) -> Noise {
         Noise(rng)
     }
-
-    pub fn next(&mut self) -> f32 {
-        self.0.next_f32()
-    }
 }

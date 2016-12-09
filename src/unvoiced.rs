@@ -1,14 +1,15 @@
 use std::f32::consts::PI;
 
-use collect_slice::CollectSlice;
 use num::complex::Complex32;
 use num::traits::Zero;
 use quad_osc::QuadOsc;
+use rand::distributions::normal::Normal;
+use rand::distributions::IndependentSample;
+use rand;
 
 use consts::SAMPLES_PER_FRAME;
 use descramble::VoiceDecisions;
 use enhance::EnhancedSpectrals;
-use noise::Noise;
 use params::BaseParams;
 use window;
 
@@ -21,10 +22,6 @@ const IDFT_SIZE: usize = 256;
 const DFT_HALF: usize = DFT_SIZE / 2;
 const IDFT_HALF: usize = IDFT_SIZE / 2;
 
-const SIG_START: isize = -104;
-const SIG_STOP: isize = 105;
-const SIG_SIZE: usize = (SIG_STOP - SIG_START) as usize;
-
 fn edges(l: usize, params: &BaseParams) -> (usize, usize) {
     let common = DFT_SIZE as f32 / (2.0 * PI) * params.fundamental;
 
@@ -34,26 +31,22 @@ fn edges(l: usize, params: &BaseParams) -> (usize, usize) {
     )
 }
 
+/// Constructs unvoiced DFT/IDFT.
+///
+/// Constructs a frequency-domain representation of an "unvoiced" white noise signal,
+/// bandpassed only for the unvoiced frequencies in the current frame. This spectrum can
+/// then be used with an inverse Fourier transform to produce a white noise signal
+/// containing only unvoiced frequency content.
 pub struct UnvoicedDFT([Complex32; DFT_HALF]);
 
 impl UnvoicedDFT {
     pub fn new(params: &BaseParams, voice: &VoiceDecisions, enhanced: &EnhancedSpectrals)
         -> UnvoicedDFT
     {
-        let sig = {
-            let mut sig = [0.0; SIG_SIZE];
+        let mut dft = [Complex32::default(); DFT_HALF];
 
-            let mut noise = Noise::new();
-            let window = window::synthesis();
-
-            (SIG_START..SIG_STOP)
-                .map(|n| noise.next() * window.get(n))
-                .collect_slice_checked(&mut sig[..]);
-
-            sig
-        };
-
-        let mut dft = [Complex32::zero(); DFT_HALF];
+        let mut rng = rand::weak_rng();
+        let gaus = Normal::new(0.0, (DFT_HALF as f64).sqrt());
 
         for (l, &amplitude) in enhanced.iter().enumerate() {
             let l = l + 1;
@@ -65,13 +58,8 @@ impl UnvoicedDFT {
             let (lower, upper) = edges(l, params);
 
             for m in lower..upper {
-                let common = 2.0 / DFT_SIZE as f32 * PI * m as f32;
-                let mut osc = QuadOsc::new(common * SIG_START as f32, common);
-
-                dft[m] = sig.iter().map(|&x| {
-                    let (sin, cos) = osc.next();
-                    x * Complex32::new(cos, -sin)
-                }).fold(Complex32::zero(), |s, x| s + x)
+                dft[m] = Complex32::new(gaus.ind_sample(&mut rng) as f32,
+                                        gaus.ind_sample(&mut rng) as f32);
             }
 
             let energy = (lower..upper)
