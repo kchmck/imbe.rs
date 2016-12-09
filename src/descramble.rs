@@ -10,6 +10,7 @@ use scan::{ScanSep, ScanBits, ScanChunks};
 pub fn descramble(chunks: &Chunks, params: &BaseParams) ->
     (QuantizedAmplitudes, VoiceDecisions, usize)
 {
+    // Extract the data in between the two scans.
     let parts = ScanSep::new(chunks, params);
 
     (
@@ -20,14 +21,19 @@ pub fn descramble(chunks: &Chunks, params: &BaseParams) ->
     )
 }
 
+/// Decodes the bootstrap value b<sub>0</sub>.
 #[derive(Copy, Clone)]
 pub enum Bootstrap {
+    /// Frame contains voiced/unvoiced data derived from enclosed b<sub>0</sub> parameter.
     Period(u8),
+    /// Frame is silence.
     Silence,
+    /// Invalid b<sub>0</sub> value was detected.
     Invalid,
 }
 
 impl Bootstrap {
+    /// Parse a `Bootstrap` value from the given chunks.
     pub fn new(chunks: &Chunks) -> Bootstrap {
         match period(chunks) {
             p @ 0...207 => Bootstrap::Period(p),
