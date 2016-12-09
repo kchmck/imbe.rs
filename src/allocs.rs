@@ -1,12 +1,17 @@
-use consts::MIN_HARMONICS;
+use consts::{MIN_HARMONICS, NUM_HARMONICS, MAX_QUANTIZED_AMPS};
 
-pub fn allocs(harmonics: u32) -> (u8, &'static [u8; 55]) {
+pub fn allocs(harmonics: u32) -> (u8, &'static [u8]) {
     let idx = harmonics as usize - MIN_HARMONICS;
-    (MAX_BITS[idx], &BITS[idx])
+    (MAX_BITS[idx], &BITS[idx][..])
 }
 
-// 1-based indexes (0 means no allocation)
-static BITS: [[u8; 55]; 48] = [
+/// Each BITS[l][k] represents the bit allocation B<sub>m</sub>, where m = 3 + k, for the
+/// gain value G<sub>m-1</sub> when the harmonic parameter L = 9 + l.
+///
+/// For example, BITS[0][0] represents that B<sub>3</sub> = 10 when L = 9.
+///
+/// This is a concatenation of the Annex F and Annex G tables.
+static BITS: [[u8; MAX_QUANTIZED_AMPS]; NUM_HARMONICS] = [
     [10, 9, 9, 9, 9, 9, 8, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [ 9, 9, 8, 8, 8, 9, 7, 6, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [ 8, 8, 8, 7, 7, 9, 7, 6, 5, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -57,7 +62,8 @@ static BITS: [[u8; 55]; 48] = [
     [ 3, 3, 2, 2, 2, 3, 2, 2, 1, 1, 1, 1, 0, 3, 2, 2, 1, 1, 1, 1, 0, 2, 2, 1, 1, 1, 1, 1, 0, 2, 2, 1, 1, 1, 0, 0, 0, 2, 1, 1, 1, 1, 0, 0, 0, 0, 2, 1, 1, 1, 0, 0, 0, 0, 0],
 ];
 
-// Maximum level in each BITS[i].
+/// Each MAX_BITS[l] provides that maximum bit allocation for any B<sub>m</sub> when L = l
+/// + 1.
 const MAX_BITS: [u8; 48] = [
     10,
     9,

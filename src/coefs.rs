@@ -74,7 +74,7 @@ impl CoefBlock {
     }
 }
 
-// AMPS_USED[l] is J_1,..,,J_6
+/// Each AMPS_USED[l] gives J<sub>1</sub>,..,,J<sub>6</sub> for L = l + 1.
 static AMPS_USED: [[u8; 6]; 48] = [
     [0, 0, 0, 1, 1, 1],
     [0, 0, 1, 1, 1, 1],

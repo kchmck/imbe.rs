@@ -65,20 +65,30 @@ fn gain_idx(chunks: &Chunks, idx_part: u32) -> usize {
     (chunks[0] & 0b111000 | idx_part << 1 | chunks[7] >> 3 & 1) as usize
 }
 
+/// Reconstructs quantized amplitudes b<sub>3</sub>, ..., b<sub>L+1</sub>.
 pub struct QuantizedAmplitudes(ArrayVec<[u32; 64]>);
 
 impl QuantizedAmplitudes {
+    /// Reconstruct quantized amplitudes from the given bit scan.
     fn new(mut scan: ScanBits, params: &BaseParams) -> QuantizedAmplitudes {
+        // Since 3 ≤ m ≤ L + 1, let i = m - 3. Then 0 ≤ i ≤ L + 1 - 3 = L - 2.
+        //
+        // The underlying array has a maximum length of 64 because that's the closest impl
+        // provided by arrayvec.
         let mut amps: ArrayVec<[u32; 64]> = (1..params.harmonics).map(|_| 0).collect();
+
         let (max, bits) = allocs(params.harmonics);
 
+        // Iterate through bit levels, MSB to LSB.
         for idx in (0..max).rev() {
-            // Visit indexes [3, L+1].
+            // Iterate over all b_i.
             for i in 0..amps.len() {
+                // Skip this b_i if there are no bits allocated to it at this bit level.
                 if bits[i] <= idx {
                     continue;
                 }
 
+                // Shift the next scanned bit onto the LSB.
                 amps[i] <<= 1;
                 amps[i] |= scan.next().unwrap();
             }
@@ -89,8 +99,8 @@ impl QuantizedAmplitudes {
         QuantizedAmplitudes(amps)
     }
 
-    // 1-based index starting at 3
-    pub fn get(&self, idx: usize) -> u32 { self.0[idx - 3] }
+    /// Retrieve the quantized amplitude b<sub>m</sub>, 3 ≤ m ≤ L + 1.
+    pub fn get(&self, m: usize) -> u32 { self.0[m - 3] }
 }
 
 #[derive(Copy, Clone)]
