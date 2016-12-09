@@ -2,6 +2,7 @@ use std::cmp::max;
 use std::f32::consts::PI;
 
 use collect_slice::CollectSlice;
+use map_in_place::MapInPlace;
 use rand::Rng;
 
 use consts::{SAMPLES_PER_FRAME, MAX_HARMONICS};
@@ -46,12 +47,12 @@ impl Phase {
         let mut phase = [0.0; MAX_HARMONICS];
         (&mut phase[..]).copy_from_slice(&base.0[..]);
 
-        let start = params.harmonics as usize / 4 + 1;
+        let start = params.harmonics as usize / 4;
 
-        for l in start...MAX_HARMONICS {
-            phase[l - 1] += voice.unvoiced_count as f32 /
-                params.harmonics as f32 * noise.gen_range(-PI, PI);
-        }
+        (&mut phase[start..MAX_HARMONICS]).map_in_place(|&x| {
+            x + voice.unvoiced_count as f32 / params.harmonics as f32 *
+                noise.gen_range(-PI, PI)
+        });
 
         Phase(phase)
     }

@@ -2,6 +2,7 @@
 
 extern crate arrayvec;
 extern crate collect_slice;
+extern crate map_in_place;
 extern crate num;
 extern crate quad_osc;
 extern crate rand;
