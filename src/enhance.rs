@@ -3,6 +3,7 @@ use std::f32::consts::PI;
 
 use arrayvec::ArrayVec;
 
+use consts::MAX_HARMONICS;
 use descramble::VoiceDecisions;
 use errors::Errors;
 use params::BaseParams;
@@ -46,7 +47,7 @@ impl Default for FrameEnergy {
 }
 
 #[derive(Clone)]
-pub struct EnhancedSpectrals(ArrayVec<[f32; 56]>);
+pub struct EnhancedSpectrals(ArrayVec<[f32; MAX_HARMONICS]>);
 
 impl EnhancedSpectrals {
     pub fn new(spectrals: &Spectrals, energy: &FrameEnergy, params: &BaseParams)
@@ -70,7 +71,7 @@ impl EnhancedSpectrals {
             } else {
                 m * weight.max(0.5).min(1.2)
             }
-        }).collect::<ArrayVec<[f32; 56]>>();
+        }).collect::<ArrayVec<[f32; MAX_HARMONICS]>>();
 
         let scale = (
             energy.spectral / enhanced.iter().fold(0.0, |s, &m| s + m.powi(2))
@@ -94,7 +95,7 @@ impl EnhancedSpectrals {
 }
 
 impl std::ops::Deref for EnhancedSpectrals {
-    type Target = ArrayVec<[f32; 56]>;
+    type Target = ArrayVec<[f32; MAX_HARMONICS]>;
     fn deref(&self) -> &Self::Target { &self.0 }
 }
 

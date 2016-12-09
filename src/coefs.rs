@@ -3,11 +3,12 @@ use std::f32::consts::PI;
 use arrayvec::ArrayVec;
 
 use allocs::allocs;
+use consts::MAX_HARMONICS;
 use descramble::QuantizedAmplitudes;
 use gain::Gains;
 use params::BaseParams;
 
-pub struct Coefficients(ArrayVec<[f32; 56]>);
+pub struct Coefficients(ArrayVec<[f32; MAX_HARMONICS]>);
 
 impl Coefficients {
     pub fn new(gains: &Gains, amps: &QuantizedAmplitudes, params: &BaseParams)

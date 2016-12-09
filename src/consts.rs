@@ -3,6 +3,9 @@ pub const SAMPLE_RATE: usize = 8000;
 /// Samples per voiced/unvoiced frame
 pub const SAMPLES_PER_FRAME: usize = 160;
 
+/// Number of harmonics L when the fundamental frequency ω<sub>0</sub> is minimum.
+pub const MAX_HARMONICS: usize = 56;
+
 #[cfg(test)]
 mod test {
     use super::*;

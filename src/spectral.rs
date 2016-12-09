@@ -4,11 +4,12 @@ use std::cmp::min;
 use arrayvec::ArrayVec;
 
 use coefs::Coefficients;
+use consts::MAX_HARMONICS;
 use params::BaseParams;
 use prev::PrevFrame;
 
 #[derive(Clone)]
-pub struct Spectrals(ArrayVec<[f32; 56]>);
+pub struct Spectrals(ArrayVec<[f32; MAX_HARMONICS]>);
 
 impl Spectrals {
     pub fn new(coefs: &Coefficients, params: &BaseParams, prev: &PrevFrame) -> Spectrals {
@@ -52,13 +53,13 @@ impl Spectrals {
 }
 
 impl std::ops::Deref for Spectrals {
-    type Target = ArrayVec<[f32; 56]>;
+    type Target = ArrayVec<[f32; MAX_HARMONICS]>;
     fn deref(&self) -> &Self::Target { &self.0 }
 }
 
 impl Default for Spectrals {
     fn default() -> Spectrals {
-        Spectrals((0..56).map(|_| 1.0).collect())
+        Spectrals((0..MAX_HARMONICS).map(|_| 1.0).collect())
     }
 }
 
