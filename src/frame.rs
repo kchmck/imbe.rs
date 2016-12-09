@@ -17,6 +17,19 @@ impl ReceivedFrame {
     /// Create a new `ReceivedFrame` from the given chunks u<sub>0</sub>, ...,
     /// u<sub>7</sub> and error counts ϵ<sub>0</sub>, ..., ϵ<sub>6</sub>.
     pub fn new(chunks: Chunks, errors: Errors) -> ReceivedFrame {
+        // First 4 chunks must have at most 12 bits.
+        for i in 0...3 {
+            assert!(chunks[i] >> 12 == 0);
+        }
+
+        // Next 3 chunks must have at most 11 bits.
+        for i in 4...6 {
+            assert!(chunks[i] >> 11 == 0);
+        }
+
+        // Final chunk must have at most 7 bits.
+        assert!(chunks[7] >> 7 == 0);
+
         ReceivedFrame {
             chunks: chunks,
             errors: errors,
