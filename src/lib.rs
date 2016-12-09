@@ -13,7 +13,6 @@ pub mod decoder;
 pub mod frame;
 
 mod allocs;
-mod chunk;
 mod coefs;
 mod descramble;
 mod enhance;

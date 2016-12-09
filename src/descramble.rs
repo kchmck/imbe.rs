@@ -3,15 +3,14 @@ use arrayvec::ArrayVec;
 use std::cmp::min;
 
 use allocs::allocs;
-use chunk::ChunkParts;
 use frame::Chunks;
 use params::BaseParams;
-use scan::{ScanBits, ScanChunks};
+use scan::{ScanSep, ScanBits, ScanChunks};
 
 pub fn descramble(chunks: &Chunks, params: &BaseParams) ->
     (QuantizedAmplitudes, VoiceDecisions, usize)
 {
-    let parts = ChunkParts::new(chunks, params);
+    let parts = ScanSep::new(chunks, params);
 
     (
         QuantizedAmplitudes::new(ScanBits::new(
