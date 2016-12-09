@@ -29,8 +29,8 @@ pub enum Bootstrap {
 
 impl Bootstrap {
     pub fn new(chunks: &Chunks) -> Bootstrap {
-        match (chunks[0] >> 4) as u8 & 0xFC | (chunks[7] >> 1) as u8 & 0b11 {
-            period @ 0...207 => Bootstrap::Period(period),
+        match period(chunks) {
+            p @ 0...207 => Bootstrap::Period(p),
             216...219 => Bootstrap::Silence,
             _ => Bootstrap::Invalid,
         }
@@ -44,6 +44,13 @@ impl Bootstrap {
             panic!("attempted unwrap of invalid/silence period");
         }
     }
+}
+
+/// Compute the quantized period b<sub>0</sub> from the given u<sub>0</sub>, ...,
+/// s<sub>7</sub>.
+fn period(chunks: &Chunks) -> u8 {
+    // Concatenate MSBs of u_0 with bits 2 and 1 of u_7 [p39].
+    (chunks[0] >> 4) as u8 & 0b11111100 | (chunks[7] >> 1) as u8 & 0b11
 }
 
 fn gain_idx(chunks: &Chunks, idx_part: u32) -> usize {
