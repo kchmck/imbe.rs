@@ -48,10 +48,10 @@ impl Phase {
         (&mut phase[..]).copy_from_slice(&base.0[..]);
 
         let start = params.harmonics as usize / 4;
+        let scale = voice.unvoiced_count() as f32 / params.harmonics as f32;
 
         (&mut phase[start..MAX_HARMONICS]).map_in_place(|&x| {
-            x + voice.unvoiced_count as f32 / params.harmonics as f32 *
-                noise.gen_range(-PI, PI)
+            x + scale * noise.gen_range(-PI, PI)
         });
 
         Phase(phase)

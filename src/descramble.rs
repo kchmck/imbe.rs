@@ -1,7 +1,5 @@
 use arrayvec::ArrayVec;
 
-use std::cmp::min;
-
 use allocs::allocs;
 use frame::Chunks;
 use params::BaseParams;
@@ -103,29 +101,42 @@ impl QuantizedAmplitudes {
     pub fn get(&self, m: usize) -> u32 { self.0[m - 3] }
 }
 
+/// Tracks harmonic voiced/unvoiced decisions.
+///
+/// The decisions are initialized from the received "tilde" v<sub>l</sub> vector [p25-26],
+/// and then may be modified by adaptive smoothing to force certain harmonics as voiced
+/// [p49], which forms the "overbar" v<sub>l</sub> vector.
 #[derive(Copy, Clone)]
 pub struct VoiceDecisions {
+    /// Parameters for the current frame.
     params: BaseParams,
-    voiced: u32,
-    pub unvoiced_count: u32,
+    /// The voiced/unvoiced bitmap, b<sub>1</sub>.
+    ///
+    /// Each bit indicates whether the harmonic l, 1 ≤ l ≤ 56, is voiced.
+    voiced: u64,
 }
 
 impl VoiceDecisions {
+    /// Create a new `VoiceDecisions` from the given band voiced/unvoiced bitmap,
+    /// b<sub>1</sub>, and frame parameters.
     pub fn new(voiced: u32, params: &BaseParams) -> VoiceDecisions {
-        let voiced_count = (voiced >> 1).count_ones() * 3 +
-                           (voiced & 1) * (1 + (params.harmonics + 2) % 3);
-
         VoiceDecisions {
             params: params.clone(),
-            voiced: voiced,
-            unvoiced_count: params.harmonics - voiced_count,
+            voiced: gen_harmonics_bitmap(voiced, params),
         }
     }
 
+    /// Force the given harmonic to be voiced.
     pub fn force_voiced(&mut self, l: usize) {
-        self.voiced |= self.mask(l)
+        self.voiced |= self.mask(l);
     }
 
+    /// Compute the number of unvoiced spectral amplitudes/harmonics, L<sub>uv</sub>.
+    pub fn unvoiced_count(&self) -> u32 {
+        self.params.harmonics - self.voiced.count_ones()
+    }
+
+    /// Check if the given harmonic is voiced.
     pub fn is_voiced(&self, l: usize) -> bool {
         if l as u32 > self.params.harmonics {
             false
@@ -134,25 +145,43 @@ impl VoiceDecisions {
         }
     }
 
-    fn mask(&self, l: usize) -> u32 {
-        self.band_mask(min((l + 2) / 3, 12))
-    }
-
-    fn band_mask(&self, idx: usize) -> u32 {
-        assert!(idx >= 1 && idx <= self.params.bands as usize);
-        1 << (self.params.bands as usize - idx)
+    /// Create a 1-bit mask for the bit position of the given harmonic.
+    fn mask(&self, l: usize) -> u64 {
+        1 << (self.params.harmonics as usize - l)
     }
 }
 
 impl Default for VoiceDecisions {
-    fn default() -> VoiceDecisions {
-        let params = BaseParams::default();
+    /// Create a new `VoiceDecisions` in default state.
+    fn default() -> Self {
+        // As default, all harmonics are unvoiced [p64].
+        VoiceDecisions::new(0, &BaseParams::default())
+    }
+}
 
-        VoiceDecisions {
-            params: params,
-            unvoiced_count: params.bands,
-            voiced: 0,
+/// Create a bitmap for harmonic voiced/unvoiced decisions from the given voiced/unvoiced
+/// band bitmap b<sub>1</sub> and frame parameters.
+///
+/// The resulting bitmap has the LSB represent harmonic L, and so on through more
+/// significant bits until harmonic 1.
+fn gen_harmonics_bitmap(voiced: u32, params: &BaseParams) -> u64 {
+    // Each voiced/unvoiced band (except possibly the last) contains 3 harmonics.
+    let bits = (0..params.bands).rev().fold(0, |bits, i| {
+        bits << 3 | if voiced >> i & 1 == 1 {
+            0b111
+        } else {
+            0
         }
+    });
+
+    // Check if the last band contains less than 3 harmonics.
+    let rem = params.harmonics % 3;
+
+    if rem == 0 {
+        bits
+    } else {
+        // Strip off extra harmonics.
+        bits >> 3 - rem
     }
 }
 
@@ -210,7 +239,7 @@ mod tests {
         assert_eq!(amps.get(16), 0b100);
         assert_eq!(amps.get(17), 0b10);
 
-        assert_eq!(voice.unvoiced_count, 9);
+        assert_eq!(voice.unvoiced_count(), 9);
 
         assert!(voice.is_voiced(1));
         assert!(voice.is_voiced(2));
@@ -228,6 +257,10 @@ mod tests {
         assert!(!voice.is_voiced(14));
         assert!(!voice.is_voiced(15));
         assert!(voice.is_voiced(16));
+
+        for l in 17..63 {
+            assert!(!voice.is_voiced(l));
+        }
     }
 
     #[test]
@@ -261,7 +294,7 @@ mod tests {
         assert_eq!(amps.get(10), 0b110110);
         assert_eq!(amps.get(11), 0b11100);
 
-        assert_eq!(voice.unvoiced_count, 3);
+        assert_eq!(voice.unvoiced_count(), 3);
 
         assert!(voice.is_voiced(1));
         assert!(voice.is_voiced(2));
@@ -274,10 +307,9 @@ mod tests {
         assert!(!voice.is_voiced(9));
         assert!(voice.is_voiced(10));
 
-        assert!(!voice.is_voiced(11));
-        assert!(!voice.is_voiced(12));
-        assert!(!voice.is_voiced(13));
-        assert!(!voice.is_voiced(14));
+        for l in 11...63 {
+            assert!(!voice.is_voiced(l));
+        }
     }
 
     #[test]
@@ -314,6 +346,10 @@ mod tests {
         assert!(voice.is_voiced(14));
         assert!(voice.is_voiced(15));
         assert!(voice.is_voiced(16));
+
+        for l in 17...63 {
+            assert!(!voice.is_voiced(l));
+        }
     }
 
     #[test]
@@ -322,49 +358,67 @@ mod tests {
         assert_eq!(p.harmonics, 16);
         assert_eq!(p.bands, 6);
         let v = VoiceDecisions::new(0b101011, &p);
-        assert_eq!(v.unvoiced_count, 6);
+        assert_eq!(v.unvoiced_count(), 6);
+        assert_eq!(v.voiced, 0b1110001110001111);
         let v = VoiceDecisions::new(0b101010, &p);
-        assert_eq!(v.unvoiced_count, 7);
+        assert_eq!(v.unvoiced_count(), 7);
+        assert_eq!(v.voiced, 0b1110001110001110);
         let v = VoiceDecisions::new(0b001001, &p);
-        assert_eq!(v.unvoiced_count, 12);
+        assert_eq!(v.unvoiced_count(), 12);
+        assert_eq!(v.voiced, 0b0000001110000001);
         let v = VoiceDecisions::new(0b101000, &p);
-        assert_eq!(v.unvoiced_count, 10);
+        assert_eq!(v.unvoiced_count(), 10);
+        assert_eq!(v.voiced, 0b1110001110000000);
         let v = VoiceDecisions::new(0b000000, &p);
-        assert_eq!(v.unvoiced_count, 16);
+        assert_eq!(v.unvoiced_count(), 16);
+        assert_eq!(v.voiced, 0b0000000000000000);
         let v = VoiceDecisions::new(0b111111, &p);
-        assert_eq!(v.unvoiced_count, 0);
+        assert_eq!(v.unvoiced_count(), 0);
+        assert_eq!(v.voiced, 0b1111111111111111);
 
         let p = BaseParams::new(36);
         assert_eq!(p.harmonics, 17);
         assert_eq!(p.bands, 6);
         let v = VoiceDecisions::new(0b101011, &p);
-        assert_eq!(v.unvoiced_count, 6);
+        assert_eq!(v.unvoiced_count(), 6);
+        assert_eq!(v.voiced, 0b11100011100011111);
         let v = VoiceDecisions::new(0b101010, &p);
-        assert_eq!(v.unvoiced_count, 8);
+        assert_eq!(v.unvoiced_count(), 8);
+        assert_eq!(v.voiced, 0b11100011100011100);
         let v = VoiceDecisions::new(0b001001, &p);
-        assert_eq!(v.unvoiced_count, 12);
+        assert_eq!(v.unvoiced_count(), 12);
+        assert_eq!(v.voiced, 0b00000011100000011);
         let v = VoiceDecisions::new(0b101000, &p);
-        assert_eq!(v.unvoiced_count, 11);
+        assert_eq!(v.unvoiced_count(), 11);
+        assert_eq!(v.voiced, 0b11100011100000000);
         let v = VoiceDecisions::new(0b000000, &p);
-        assert_eq!(v.unvoiced_count, 17);
+        assert_eq!(v.unvoiced_count(), 17);
+        assert_eq!(v.voiced, 0b00000000000000000);
         let v = VoiceDecisions::new(0b111111, &p);
-        assert_eq!(v.unvoiced_count, 0);
+        assert_eq!(v.unvoiced_count(), 0);
+        assert_eq!(v.voiced, 0b11111111111111111);
 
         let p = BaseParams::new(40);
         assert_eq!(p.harmonics, 18);
         assert_eq!(p.bands, 6);
         let v = VoiceDecisions::new(0b101011, &p);
-        assert_eq!(v.unvoiced_count, 6);
+        assert_eq!(v.unvoiced_count(), 6);
+        assert_eq!(v.voiced, 0b111000111000111111);
         let v = VoiceDecisions::new(0b101010, &p);
-        assert_eq!(v.unvoiced_count, 9);
+        assert_eq!(v.unvoiced_count(), 9);
+        assert_eq!(v.voiced, 0b111000111000111000);
         let v = VoiceDecisions::new(0b001001, &p);
-        assert_eq!(v.unvoiced_count, 12);
+        assert_eq!(v.unvoiced_count(), 12);
+        assert_eq!(v.voiced, 0b000000111000000111);
         let v = VoiceDecisions::new(0b101000, &p);
-        assert_eq!(v.unvoiced_count, 12);
+        assert_eq!(v.unvoiced_count(), 12);
+        assert_eq!(v.voiced, 0b111000111000000000);
         let v = VoiceDecisions::new(0b000000, &p);
-        assert_eq!(v.unvoiced_count, 18);
+        assert_eq!(v.unvoiced_count(), 18);
+        assert_eq!(v.voiced, 0b000000000000000000);
         let v = VoiceDecisions::new(0b111111, &p);
-        assert_eq!(v.unvoiced_count, 0);
+        assert_eq!(v.unvoiced_count(), 0);
+        assert_eq!(v.voiced, 0b111111111111111111);
     }
 
     #[test]
