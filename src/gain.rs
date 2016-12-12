@@ -34,8 +34,8 @@ impl Gains {
     pub fn idct(&self, i: usize) -> f32 {
         assert!(i >= 1 && i <= 6);
 
-        self.0[0] + (2..7).map(|m| {
-            2.0 * self.0[m - 1] *
+        self.0[0] + 2.0 * (2..7).map(|m| {
+            self.0[m - 1] *
                 (PI * (m as f32 - 1.0) * (i as f32 - 0.5) / 6.0).cos()
         }).fold(0.0, |s, x| s + x)
     }
