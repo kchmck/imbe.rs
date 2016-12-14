@@ -73,7 +73,7 @@ impl IMBEDecoder {
 
         let udft = UnvoicedDFT::new(&params, &voice, &enhanced);
         let vbase = PhaseBase::new(&params, &self.prev);
-        let vphase = Phase::new(&params, &voice, &vbase, rand::weak_rng());
+        let vphase = Phase::new(&params, &self.prev, &voice, &vbase, rand::weak_rng());
 
         {
             let unvoiced = Arc::new(Unvoiced::new(&udft, &self.prev.unvoiced));
@@ -125,7 +125,7 @@ impl IMBEDecoder {
 
         let udft = UnvoicedDFT::new(&params, &voice, &enhanced);
         let vbase = PhaseBase::new(&params, &self.prev);
-        let vphase = Phase::new(&params, &voice, &vbase, rand::weak_rng());
+        let vphase = Phase::new(&params, &self.prev, &voice, &vbase, rand::weak_rng());
 
         let unvoiced = Unvoiced::new(&udft, &self.prev.unvoiced);
         let voiced = Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice);

@@ -40,17 +40,20 @@ impl Default for PhaseBase {
 pub struct Phase([f32; MAX_HARMONICS]);
 
 impl Phase {
-    pub fn new<R: Rng>(params: &BaseParams, voice: &VoiceDecisions, base: &PhaseBase,
-                       mut noise: R)
+    /// Create a new `Phase` building on the given base phase terms.
+    pub fn new<R: Rng>(params: &BaseParams, prev: &PrevFrame, voice: &VoiceDecisions,
+                       base: &PhaseBase, mut noise: R)
         -> Phase
     {
         let mut phase = [0.0; MAX_HARMONICS];
         (&mut phase[..]).copy_from_slice(&base.0[..]);
 
         let start = params.harmonics as usize / 4;
+        let stop = max(params.harmonics, prev.params.harmonics) as usize;
         let scale = voice.unvoiced_count() as f32 / params.harmonics as f32;
 
-        (&mut phase[start..MAX_HARMONICS]).map_in_place(|&x| {
+        // Modify Ψ_l from start + 1 ≤ l ≤ stop. Since i = l - 1, start ≤ i ≤ stop - 1.
+        (&mut phase[start..stop]).map_in_place(|&x| {
             x + scale * noise.gen_range(-PI, PI)
         });
 
