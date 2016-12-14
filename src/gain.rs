@@ -6,33 +6,43 @@ use descramble::QuantizedAmplitudes;
 use params::BaseParams;
 use allocs::allocs;
 
-pub struct Gains([f32; 6]);
+/// Number of gain values used in the decoder.
+const NUM_GAINS: usize = 6;
+
+/// The gain vector G<sub>m</sub>, 1 ≤ m ≤ 6, gives a coarse envelope for the voice frame.
+pub struct Gains([f32; NUM_GAINS]);
 
 impl Gains {
+    /// Create a new `Gains` vector from the given initial gain index b<sub>2</sub>,
+    /// quantized amplitudes b<sub>m</sub>, 3 ≤ m ≤ L + 1, and frame parameters.
     pub fn new(gain_idx: usize, amps: &QuantizedAmplitudes, params: &BaseParams) -> Gains {
-        let mut gains = [0.0; 6];
+        let mut gains = [0.0; NUM_GAINS];
 
+        // Retrieve the B_m bit allocations for the current harmonics parameter.
         let (_, alloc) = allocs(params.harmonics);
-        let steps = steps(params.harmonics);
+        let steps = &STEPS[params.harmonics as usize - 9];
 
+        // First gain value G_1 is found from b_2 index.
         gains[0] = GAIN[gain_idx];
 
-        (2..7).map(|m| {
-            let bits = alloc[m + 1 - 3] as i32;
-            let step = steps[m + 1 - 3];
+        // Compute G_2, ..., G_6.
+        (3...7).map(|m| {
+            let bits = alloc[m - 3];
+            let step = steps[m - 3];
 
             if bits == 0 {
                 0.0
             } else {
-                step * (amps.get(m + 1) as f32 - (2.0f32).powi(bits - 1) + 0.5)
+                step * (amps.get(m) as f32 - (1 << (bits - 1)) as f32 + 0.5)
             }
         }).collect_slice_checked(&mut gains[1..]);
 
         Gains(gains)
     }
 
+    /// Compute the inverse DCT R<sub>i</sub>, 1 ≤ i ≤ 6.
     pub fn idct(&self, i: usize) -> f32 {
-        assert!(i >= 1 && i <= 6);
+        assert!(i >= 1 && i <= NUM_GAINS);
 
         self.0[0] + 2.0 * (2..7).map(|m| {
             self.0[m - 1] *
@@ -41,11 +51,8 @@ impl Gains {
     }
 }
 
-fn steps(harmonics: u32) -> &'static [f32; 5] {
-    &STEPS[harmonics as usize - 9]
-}
-
-// STEP[l][m] is del_m for l
+/// Each STEPS[l][i] represents the step size Δ<sub>i+3</sub> = Δ<sub>m</sub>, 3 ≤ m ≤ 7,
+/// for the harmonics parameter l = L - 9.
 static STEPS: [[f32; 5]; 48] = [
     [0.003100, 0.004020, 0.003360, 0.002900, 0.002640],
     [0.006200, 0.004020, 0.006720, 0.005800, 0.005280],
@@ -97,7 +104,8 @@ static STEPS: [[f32; 5]; 48] = [
     [0.201500, 0.130650, 0.142800, 0.123250, 0.112200],
 ];
 
-// G_1[b_2]
+/// Each GAIN[b<sub>2</sub>] represents the first gain value G<sub>1</sub> for the index
+/// b<sub>2</sub>.
 const GAIN: [f32; 64] = [
     -2.842205,
     -2.694235,
