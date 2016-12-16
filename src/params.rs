@@ -1,25 +1,34 @@
 use std::cmp::min;
 use std::f32::consts::PI;
 
+/// Basic parameters of the current frame.
 #[derive(Copy, Clone)]
 pub struct BaseParams {
-    /// w_0
+    /// Fundamental frequency ω<sub>0</sub> the frame is derived from.
     pub fundamental: f32,
-    /// L
+    /// Number of harmonics L of the fundamental frequency present in the frame.
     pub harmonics: u32,
-    /// K
+    /// Number of frequency bands K in the frame, each of which is classified as either
+    /// voiced or unvoiced.
+    ///
+    /// Each band contains 3 harmonics of the fundamental frequency, except the last which
+    /// may contain less [p20].
     pub bands: u32,
 }
 
 impl BaseParams {
+    /// Create a new `BaseParams` from the given period b<sub>0</sub>.
     pub fn new(period: u8) -> BaseParams {
         Self::from_float(period as f32)
     }
 
-    // Assuming period is valid
+    /// Create a new `BaseParams` from the given floating-point period b<sub>0</sub>.
     fn from_float(period: f32) -> BaseParams {
+        // Compute Eq 46.
         let f = 4.0 * PI / (period + 39.5);
+        // Compute Eq 47.
         let h = (0.9254 * (PI / f + 0.25).floor()) as u32;
+        // Compute Eq 48.
         let b = min((h + 2) / 3, 12);
 
         BaseParams {
@@ -31,7 +40,9 @@ impl BaseParams {
 }
 
 impl Default for BaseParams {
+    /// Create a new `BaseParams` with initial default values.
     fn default() -> BaseParams {
+        // Taken from [p64].
         BaseParams {
             fundamental: 0.02985 * PI,
             harmonics: 30,
