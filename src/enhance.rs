@@ -5,13 +5,13 @@ use arrayvec::ArrayVec;
 use map_in_place::MapInPlace;
 
 use consts::MAX_HARMONICS;
-use frame;
+use frame::Errors;
 use descramble::VoiceDecisions;
 use params::BaseParams;
 use spectral::Spectrals;
 
 /// Values derived from error correction decoding.
-pub struct Errors {
+pub struct EnhanceErrors {
     /// Total number of errors corrected in the current frame, ϵ<sub>T</sub> [p45].
     pub total: usize,
     /// Error rate tracking term, ϵ<sub>R</sub> [p45].
@@ -22,13 +22,13 @@ pub struct Errors {
     pub hamming_init: usize,
 }
 
-impl Errors {
-    /// Create a new `Errors` from the errors corrected in the current frame,
+impl EnhanceErrors {
+    /// Create a new `EnhanceErrors` from the errors corrected in the current frame,
     /// ϵ<sub>i</sub>, and the previous frame's ϵ<sub>R</sub> value.
-    pub fn new(errors: &frame::Errors, prev_rate: f32) -> Errors {
+    pub fn new(errors: &Errors, prev_rate: f32) -> EnhanceErrors {
         let total = errors.iter().fold(0, |s, &e| s + e);
 
-        Errors {
+        EnhanceErrors {
             total: total,
             // Compute Eq 96.
             rate: 0.95 * prev_rate + 0.000365 * total as f32,
@@ -165,7 +165,7 @@ impl Default for EnhancedSpectrals {
 
 /// Compute the spectral amplitude threshold τ<sub>M</sub> used in adaptive smoothing from
 /// the given error characteristics and previous amplitude threshold.
-pub fn amp_thresh(errors: &Errors, prev: f32) -> f32 {
+pub fn amp_thresh(errors: &EnhanceErrors, prev: f32) -> f32 {
     // Compute Eq 115.
     if errors.rate <= 0.005 && errors.total <= 6 {
         20480.0
@@ -178,7 +178,7 @@ pub fn amp_thresh(errors: &Errors, prev: f32) -> f32 {
 /// decisions v<sub>l</sub> based on the given error characteristics, current frame
 /// energy, and spectral amplitude threshold τ<sub>M</sub> for the current frame.
 pub fn smooth(enhanced: &mut EnhancedSpectrals, voiced: &mut VoiceDecisions,
-              errors: &Errors, fen: &FrameEnergy, amp_thresh: f32)
+              errors: &EnhanceErrors, fen: &FrameEnergy, amp_thresh: f32)
 {
     // Compute Eq 112.
     let thresh = if errors.rate <= 0.005 && errors.total <= 4 {
@@ -207,14 +207,14 @@ pub fn smooth(enhanced: &mut EnhancedSpectrals, voiced: &mut VoiceDecisions,
 
 /// Check whether the current frame should be discarded and the previous repeated based on
 /// the given error characteristics of the current frame.
-pub fn should_repeat(errors: &Errors) -> bool {
+pub fn should_repeat(errors: &EnhanceErrors) -> bool {
     // Check the conditions in Eqs 97 and 98.
     errors.golay_init >= 2 && errors.total as f32 >= 10.0 + 40.0 * errors.rate
 }
 
 /// Check if the current frame should be discarded and replaced with silence/comfort noise
 /// based on the given error characteristics of the current frame.
-pub fn should_mute(errors: &Errors) -> bool {
+pub fn should_mute(errors: &EnhanceErrors) -> bool {
     // Check the condition on [p47].
     errors.rate > 0.0875
 }
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_errors() {
-        let e = Errors::new(&[1, 2, 3, 4, 5, 6, 7], 0.5);
+        let e = EnhanceErrors::new(&[1, 2, 3, 4, 5, 6, 7], 0.5);
 
         assert_eq!(e.total, 28);
         assert!((e.rate - 0.48522).abs() < 0.00001);

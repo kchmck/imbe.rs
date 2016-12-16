@@ -8,7 +8,7 @@ use thread_scoped;
 use coefs::Coefficients;
 use consts::SAMPLES_PER_FRAME;
 use descramble::{descramble, Bootstrap};
-use enhance::{self, EnhancedSpectrals, FrameEnergy, Errors};
+use enhance::{self, EnhancedSpectrals, FrameEnergy, EnhanceErrors};
 use frame::ReceivedFrame;
 use gain::Gains;
 use params::BaseParams;
@@ -47,7 +47,7 @@ impl IMBEDecoder {
             },
         };
 
-        let errors = Errors::new(&frame.errors, self.prev.err_rate);
+        let errors = EnhanceErrors::new(&frame.errors, self.prev.err_rate);
 
         if enhance::should_repeat(&errors) {
             self.repeat(buf);
