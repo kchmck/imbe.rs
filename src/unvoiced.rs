@@ -22,6 +22,8 @@ const IDFT_SIZE: usize = 256;
 const DFT_HALF: usize = DFT_SIZE / 2;
 const IDFT_HALF: usize = IDFT_SIZE / 2;
 
+/// Determine the (lower, upper) band edges for the given harmonic of the fundamental
+/// frequency.
 fn edges(l: usize, params: &BaseParams) -> (usize, usize) {
     let common = DFT_SIZE as f32 / (2.0 * PI) * params.fundamental;
 

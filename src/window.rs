@@ -1,13 +1,20 @@
+//! Signal windowing.
+
+/// Retrieve the speech synthesis window w<sub>s</sub>.
 pub fn synthesis() -> Window {
     Window::new(&WINDOW_SYNTHESIS[..])
 }
 
+/// Wraps a set of window coefficients and remaps the center coefficient to index 0.
 pub struct Window {
+    /// Coefficients of the window.
     coefs: &'static [f32],
+    /// Offset into the coefficients array of the center coefficient (n = 0).
     offset: isize,
 }
 
 impl Window {
+    /// Create a new `Window` with the given coefficients.
     pub fn new(coefs: &'static [f32]) -> Window {
         Window {
             coefs: coefs,
@@ -15,6 +22,7 @@ impl Window {
         }
     }
 
+    /// Retrieve the coefficient w(n) for the given n.
     pub fn get(&self, n: isize) -> f32 {
         match self.coefs.get((n + self.offset) as usize) {
             Some(&coef) => coef,
@@ -23,7 +31,7 @@ impl Window {
     }
 }
 
-// w_S(n)
+/// Coefficients of the speech synthesis window [p95].
 static WINDOW_SYNTHESIS: [f32; 211] = [
     0.000000,
     0.020000,

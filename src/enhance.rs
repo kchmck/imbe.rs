@@ -1,3 +1,5 @@
+//! Frame repeat/muting, spectral amplitude enhancement, and adaptive smoothing.
+
 use std;
 use std::f32::consts::PI;
 

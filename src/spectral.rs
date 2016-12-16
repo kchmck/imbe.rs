@@ -1,3 +1,5 @@
+//! Spectral amplitudes.
+
 use std;
 
 use arrayvec::ArrayVec;

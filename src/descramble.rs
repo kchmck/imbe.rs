@@ -1,3 +1,5 @@
+//! Initial descrambling of prioritized chunks.
+
 use arrayvec::ArrayVec;
 
 use allocs::allocs;
@@ -5,6 +7,9 @@ use frame::Chunks;
 use params::BaseParams;
 use scan::{ScanSep, ScanBits, ScanChunks};
 
+/// Descramble the given prioritized chunks u<sub>i</sub> into the underlying quantized
+/// amplitudes b<sub>m</sub>, voiced/unvoiced decisions v<sub>l</sub>, and initial gain
+/// index b<sub>2</sub>.
 pub fn descramble(chunks: &Chunks, params: &BaseParams) ->
     (QuantizedAmplitudes, VoiceDecisions, usize)
 {
@@ -36,6 +41,7 @@ impl Bootstrap {
         match period(chunks) {
             p @ 0...207 => Bootstrap::Period(p),
             216...219 => Bootstrap::Silence,
+            // Rest of the values are invalid [p46].
             _ => Bootstrap::Invalid,
         }
     }
@@ -50,7 +56,7 @@ impl Bootstrap {
     }
 }
 
-/// Compute the quantized period b<sub>0</sub> from the given u<sub>0</sub>, ...,
+/// Compute the 8-bit quantized period b<sub>0</sub> from the given u<sub>0</sub>, ...,
 /// s<sub>7</sub>.
 fn period(chunks: &Chunks) -> u8 {
     // Concatenate MSBs of u_0 with bits 2 and 1 of u_7 [p39].

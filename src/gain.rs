@@ -1,3 +1,5 @@
+//! Quantized gain vector.
+
 use std::f32::consts::PI;
 
 use collect_slice::CollectSlice;

@@ -1,3 +1,5 @@
+//! Frame parameters.
+
 use std::cmp::min;
 use std::f32::consts::PI;
 

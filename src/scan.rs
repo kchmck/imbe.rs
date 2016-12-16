@@ -1,3 +1,5 @@
+//! Scanning procedure used in descrambling.
+
 use std::ops::Range;
 
 use params::BaseParams;
@@ -14,7 +16,7 @@ use frame::Chunks;
 pub struct ScanSep {
     /// Voiced/Unvoiced Boolean bit vector, b<sub>1</sub> [p25].
     pub voiced: u32,
-    /// Bits 1 an 2 of the 6-bit quantized gain index, b<sub>2</sub> [p30].
+    /// Bits 1 and 2 of the 6-bit quantized gain index, b<sub>2</sub> [p30].
     pub idx_part: u32,
     /// Chunk of some b<sub>m</sub> used in the scanning procedure [p39].
     pub scanned: u32,

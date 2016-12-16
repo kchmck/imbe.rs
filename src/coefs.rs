@@ -1,3 +1,5 @@
+//! Higher order DCT coefficients.
+
 use std::f32::consts::PI;
 
 use arrayvec::ArrayVec;
