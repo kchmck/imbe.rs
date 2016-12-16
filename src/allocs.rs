@@ -114,3 +114,17 @@ const MAX_BITS: [u8; 48] = [
     3,
     3,
 ];
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn verify_max_bits() {
+        // Verify that the values in MAX_BITS are correct.
+
+        for (&allocs, &max) in BITS.iter().zip(MAX_BITS.iter()) {
+            assert_eq!(allocs.iter().max().unwrap(), &max);
+        }
+    }
+}
