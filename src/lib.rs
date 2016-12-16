@@ -16,7 +16,6 @@ mod allocs;
 mod coefs;
 mod descramble;
 mod enhance;
-mod errors;
 mod gain;
 mod params;
 mod prev;
