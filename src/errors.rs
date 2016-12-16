@@ -1,16 +1,26 @@
+use frame;
+
+/// Values derived from error correction decoding.
 pub struct Errors {
+    /// Total number of errors corrected in the current frame, ϵ<sub>T</sub> [p45].
     pub total: usize,
+    /// Error rate tracking term, ϵ<sub>R</sub> [p45].
     pub rate: f32,
+    /// Errors corrected in first (u<sub>0</sub>) Golay-coded chunk, ϵ<sub>0</sub>.
     pub golay_init: usize,
+    /// Errors corrected in first (u<sub>4</sub>) Hamming-coded chunk, ϵ<sub>4</sub>.
     pub hamming_init: usize,
 }
 
 impl Errors {
-    pub fn new(errors: &[usize; 7], prev_rate: f32) -> Errors {
+    /// Create a new `Errors` from the errors corrected in the current frame,
+    /// ϵ<sub>i</sub>, and the previous frame's ϵ<sub>R</sub> value.
+    pub fn new(errors: &frame::Errors, prev_rate: f32) -> Errors {
         let total = errors.iter().fold(0, |s, &e| s + e);
 
         Errors {
             total: total,
+            // Compute Eq 96.
             rate: 0.95 * prev_rate + 0.000365 * total as f32,
             golay_init: errors[0],
             hamming_init: errors[4],
