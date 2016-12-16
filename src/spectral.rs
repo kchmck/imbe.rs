@@ -1,5 +1,4 @@
 use std;
-use std::cmp::min;
 
 use arrayvec::ArrayVec;
 
@@ -8,44 +7,57 @@ use consts::MAX_HARMONICS;
 use params::BaseParams;
 use prev::PrevFrame;
 
+/// Spectral amplitudes M<sub>l</sub>, 1 ≤ l ≤ L, measure the spectral envelope of the
+/// voiced/unvoiced signal spectrum.
 #[derive(Clone)]
 pub struct Spectrals(ArrayVec<[f32; MAX_HARMONICS]>);
 
 impl Spectrals {
+    /// Create a new `Spectrals` from the given DCT coefficients vector T<sub>l</sub> and
+    /// current/previous frame parameters.
     pub fn new(coefs: &Coefficients, params: &BaseParams, prev: &PrevFrame) -> Spectrals {
-        let mut spectral = ArrayVec::new();
+        // Compute L(-1) / L(0).
+        let scale = prev.params.harmonics as f32 / params.harmonics as f32;
 
-        let indexes = |x: u32| {
-            let k = prev.params.harmonics as f32 / params.harmonics as f32 * x as f32;
+        // Compute (k_l,  δ_l) for the given harmonic l [p35].
+        let indexes = |l: u32| {
+            let k = scale * l as f32;
             (k.trunc() as usize, k.fract())
         };
 
+        // Compute prediction coefficient ρ [p27].
         let pred = (0.03 * params.harmonics as f32 - 0.05).max(0.4).min(0.7);
-        let pred_scaled = pred / params.harmonics as f32;
 
-        let sum = (1...params.harmonics).map(|lambda| {
-            let (k, dec) = indexes(lambda);
+        // Compute the sum term.
+        let sum = (1...params.harmonics).map(|l| indexes(l)).map(|(k, dec)| {
             (1.0 - dec) * prev.spectrals.get(k).log2() +
                 dec * prev.spectrals.get(k + 1).log2()
-        }).fold(0.0, |s, x| s + x);
+        }).fold(0.0, |s, x| s + x) / params.harmonics as f32;
 
+        // Compute M_l for each harmonic l.
         Spectrals((1...params.harmonics).map(|l| {
             let (k, dec) = indexes(l);
 
             (
-                coefs.get(l as usize) +
-                    pred * (1.0 - dec) * prev.spectrals.get(k).log2() +
-                    pred * dec * prev.spectrals.get(k + 1).log2() -
-                    pred_scaled * sum
+                coefs.get(l as usize) + pred * (
+                    (1.0 - dec) * prev.spectrals.get(k).log2() +
+                    dec * prev.spectrals.get(k + 1).log2() -
+                    sum
+                )
             ).exp2()
         }).collect())
     }
 
+    /// Retrieve the spectral amplitude M<sub>l</sub> for the given l.
     pub fn get(&self, l: usize) -> f32 {
         if l == 0 {
+            // Handles case of Eq 78.
             1.0
+        } else if l > self.0.len() {
+            // Handle case of Eq 79.
+            *self.0.last().unwrap()
         } else {
-            self.0[min(l, self.0.len()) - 1]
+            self.0[l - 1]
         }
     }
 }
@@ -56,7 +68,9 @@ impl std::ops::Deref for Spectrals {
 }
 
 impl Default for Spectrals {
+    /// Construct the default set of spectral amplitudes.
     fn default() -> Spectrals {
+        // By default, M_l = 1 [p35].
         Spectrals((0..MAX_HARMONICS).map(|_| 1.0).collect())
     }
 }
