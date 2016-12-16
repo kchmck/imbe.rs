@@ -2,6 +2,7 @@ use std;
 use std::f32::consts::PI;
 
 use arrayvec::ArrayVec;
+use map_in_place::MapInPlace;
 
 use consts::MAX_HARMONICS;
 use descramble::VoiceDecisions;
@@ -9,63 +10,84 @@ use errors::Errors;
 use params::BaseParams;
 use spectral::Spectrals;
 
+/// Energy-related parameters for a voice frame.
 pub struct FrameEnergy {
-    pub spectral: f32,
-    pub cos: f32,
+    /// Spectral amplitude energy, R<sub>M0</sub>.
+    pub energy: f32,
+    /// Scaled energy value, R<sub>M1</sub>.
+    pub scaled: f32,
+    /// Moving average energy tracker, S<sub>E</sub>.
     pub tracking: f32,
 }
 
 impl FrameEnergy {
+    /// Create a new `FrameEnergy` from the given spectral amplitudes M<sub>l</sub>,
+    /// previous frame energy values, and current frame parameters.
     pub fn new(spectrals: &Spectrals, prev: &FrameEnergy, params: &BaseParams)
         -> FrameEnergy
     {
-        let m0 = spectrals.iter()
+        // Compute energy of spectral amplitudes according to Eq 105.
+        let energy = spectrals.iter()
             .map(|&m| m.powi(2))
             .fold(0.0, |s, x| s + x);
 
-        let m1 = spectrals.iter().enumerate().map(|(l, &m)| {
-            let l = l + 1;
-            m.powi(2) * (params.fundamental * l as f32).cos()
-        }).fold(0.0, |s, x| s + x);
+        // Compute scaled energies according to Eq 106.
+        let scaled = spectrals.iter().enumerate()
+            .map(|(l, &m)| m.powi(2) * (params.fundamental * (l + 1) as f32).cos())
+            .fold(0.0, |s, x| s + x);
 
         FrameEnergy {
-            spectral: m0,
-            cos: m1,
-            tracking: (0.95 * prev.tracking + 0.05 * m0).max(10000.0),
+            energy: energy,
+            scaled: scaled,
+            // Compute energy tracking EWMA according to Eq 111.
+            tracking: (0.95 * prev.tracking + 0.05 * energy).max(10000.0),
         }
     }
 }
 
 impl Default for FrameEnergy {
+    /// Create a new `FrameEnergy` with default initial values.
     fn default() -> FrameEnergy {
+        // The first two values are arbitrary as they aren't saved across frames, and the
+        // third value is taken from [p64].
         FrameEnergy {
-            spectral: 0.0,
-            cos: 0.0,
+            energy: 0.0,
+            scaled: 0.0,
             tracking: 75000.0,
         }
     }
 }
 
+/// Enhanced spectral amplitudes, "overbar" M<sub>l</sub>, are derived from the decoded
+/// spectral amplitudes, "tilde" M<sub>l</sub>.
 #[derive(Clone)]
 pub struct EnhancedSpectrals(ArrayVec<[f32; MAX_HARMONICS]>);
 
 impl EnhancedSpectrals {
-    pub fn new(spectrals: &Spectrals, energy: &FrameEnergy, params: &BaseParams)
+    /// Create a new `EnhancedSpectrals` from the given base spectral amplitudes
+    /// M<sub>l</sub> and current frame energy values and parameters.
+    pub fn new(spectrals: &Spectrals, fen: &FrameEnergy, params: &BaseParams)
         -> EnhancedSpectrals
     {
-        let spectral_sqr = energy.spectral.powi(2);
-        let cos_sqr = energy.cos.powi(2);
+        // Compute R_M0^2.
+        let energy_sqr = fen.energy.powi(2);
+        // Compute R_M1^2.
+        let scaled_sqr = fen.scaled.powi(2);
+        // Compute denominator term of Eq 107.
+        let denom = params.fundamental * fen.energy * (energy_sqr - scaled_sqr);
 
         let mut enhanced = spectrals.iter().enumerate().map(|(l, &m)| {
             let l = l + 1;
 
+            // Compute Eq 107.
             let weight = m.sqrt() * (
                 0.96 * PI * (
-                    spectral_sqr + cos_sqr - 2.0 * energy.spectral * energy.cos *
+                    energy_sqr + scaled_sqr - 2.0 * fen.energy * fen.scaled *
                         (params.fundamental * l as f32).cos()
-                ) / (params.fundamental * energy.spectral * (spectral_sqr - cos_sqr))
+                ) / denom
             ).powf(0.25);
 
+            // Scale current spectral amplitude according to Eq 108.
             if 8 * l as u32 <= params.harmonics {
                 m
             } else {
@@ -73,22 +95,24 @@ impl EnhancedSpectrals {
             }
         }).collect::<ArrayVec<[f32; MAX_HARMONICS]>>();
 
+        // Compute root ratio of energies according to Eq 109.
         let scale = (
-            energy.spectral / enhanced.iter().fold(0.0, |s, &m| s + m.powi(2))
+            fen.energy / enhanced.iter().fold(0.0, |s, &m| s + m.powi(2))
         ).sqrt();
 
-        for m in enhanced.iter_mut() {
-            *m *= scale;
-        }
+        // Perform second scaling pass according to Eq 110.
+        enhanced.map_in_place(|&m| m * scale);
 
         EnhancedSpectrals(enhanced)
     }
 
+    /// Retrieve the enhanced spectral amplitude M<sub>l</sub>, 1 ≤ l ≤ L.
     pub fn get(&self, l: usize) -> f32 {
         assert!(l >= 1);
 
         match self.0.get(l - 1) {
             Some(&s) => s,
+            // Out-of-bounds amplitudes are zero [p60].
             None => 0.0,
         }
     }
@@ -104,12 +128,17 @@ impl std::ops::DerefMut for EnhancedSpectrals {
 }
 
 impl Default for EnhancedSpectrals {
+    /// Create a new `EnhancedSpectrals` with default initial values.
     fn default() -> EnhancedSpectrals {
+        // By default, all enhanced amplitudes are 0 [p64].
         EnhancedSpectrals(ArrayVec::new())
     }
 }
 
+/// Compute the spectral amplitude threshold τ<sub>M</sub> used in adaptive smoothing from
+/// the given error characteristics and previous amplitude threshold.
 pub fn amp_thresh(errors: &Errors, prev: f32) -> f32 {
+    // Compute Eq 115.
     if errors.rate <= 0.005 && errors.total <= 6 {
         20480.0
     } else {
@@ -117,36 +146,48 @@ pub fn amp_thresh(errors: &Errors, prev: f32) -> f32 {
     }
 }
 
+/// Smooth the given enhanced spectral amplitudes M<sub>l</sub> and voiced/unvoiced
+/// decisions v<sub>l</sub> based on the given error characteristics, current frame
+/// energy, and spectral amplitude threshold τ<sub>M</sub> for the current frame.
 pub fn smooth(enhanced: &mut EnhancedSpectrals, voiced: &mut VoiceDecisions,
-              errors: &Errors, energy: &FrameEnergy, amp_thresh: f32)
+              errors: &Errors, fen: &FrameEnergy, amp_thresh: f32)
 {
+    // Compute Eq 112.
     let thresh = if errors.rate <= 0.005 && errors.total <= 4 {
         std::f32::MAX
     } else if errors.rate <= 0.0125 && errors.hamming_init == 0 {
-        45.255 * energy.tracking.powf(0.375) / (277.26 * errors.rate).exp()
+        45.255 * fen.tracking.powf(0.375) / (277.26 * errors.rate).exp()
     } else {
-        1.414 * energy.tracking.powf(0.375)
+        1.414 * fen.tracking.powf(0.375)
     };
 
+    // Update voiced/unvoiced decisions according to Eq 113.
     for (l, &m) in enhanced.iter().enumerate() {
         if m > thresh {
             voiced.force_voiced(l + 1);
         }
     }
 
+    // Compute amplitude sum in Eq 114.
     let amp = enhanced.iter().fold(0.0, |s, &m| s + m);
+    // Compute scale factor in Eq 116.
     let scale = (amp_thresh / amp).min(1.0);
 
-    for m in enhanced.iter_mut() {
-        *m *= scale;
-    }
+    // Scale each enhanced M_l [p50].
+    enhanced.map_in_place(|&m| m * scale);
 }
 
+/// Check whether the current frame should be discarded and the previous repeated based on
+/// the given error characteristics of the current frame.
 pub fn should_repeat(errors: &Errors) -> bool {
+    // Check the conditions in Eqs 97 and 98.
     errors.golay_init >= 2 && errors.total as f32 >= 10.0 + 40.0 * errors.rate
 }
 
+/// Check if the current frame should be discarded and replaced with silence/comfort noise
+/// based on the given error characteristics of the current frame.
 pub fn should_mute(errors: &Errors) -> bool {
+    // Check the condition on [p47].
     errors.rate > 0.0875
 }
 
