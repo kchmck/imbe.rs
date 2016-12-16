@@ -5,7 +5,7 @@ use num::traits::Zero;
 use quad_osc::QuadOsc;
 use rand::distributions::normal::Normal;
 use rand::distributions::IndependentSample;
-use rand;
+use rand::Rng;
 
 use consts::SAMPLES_PER_FRAME;
 use descramble::VoiceDecisions;
@@ -42,12 +42,11 @@ fn edges(l: usize, params: &BaseParams) -> (usize, usize) {
 pub struct UnvoicedDFT([Complex32; DFT_HALF]);
 
 impl UnvoicedDFT {
-    pub fn new(params: &BaseParams, voice: &VoiceDecisions, enhanced: &EnhancedSpectrals)
+    pub fn new<R: Rng>(params: &BaseParams, voice: &VoiceDecisions,
+                       enhanced: &EnhancedSpectrals, mut rng: R)
         -> UnvoicedDFT
     {
         let mut dft = [Complex32::default(); DFT_HALF];
-
-        let mut rng = rand::weak_rng();
         let gaus = Normal::new(0.0, (DFT_HALF as f64).sqrt());
 
         for (l, &amplitude) in enhanced.iter().enumerate() {

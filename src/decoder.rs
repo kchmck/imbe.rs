@@ -70,7 +70,7 @@ impl IMBEDecoder {
         let amp_thresh = enhance::amp_thresh(&errors, self.prev.amp_thresh);
         enhance::smooth(&mut enhanced, &mut voice, &errors, &energy, amp_thresh);
 
-        let udft = UnvoicedDFT::new(&params, &voice, &enhanced);
+        let udft = UnvoicedDFT::new(&params, &voice, &enhanced, rand::weak_rng());
         let vbase = PhaseBase::new(&params, &self.prev);
         let vphase = Phase::new(&params, &self.prev, &voice, &vbase, rand::weak_rng());
 
@@ -122,7 +122,7 @@ impl IMBEDecoder {
         let voice = self.prev.voice.clone();
         let enhanced = self.prev.enhanced.clone();
 
-        let udft = UnvoicedDFT::new(&params, &voice, &enhanced);
+        let udft = UnvoicedDFT::new(&params, &voice, &enhanced, rand::weak_rng());
         let vbase = PhaseBase::new(&params, &self.prev);
         let vphase = Phase::new(&params, &self.prev, &voice, &vbase, rand::weak_rng());
 
