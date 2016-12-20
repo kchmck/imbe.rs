@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use arrayvec::ArrayVec;
 use collect_slice::CollectSlice;
+use crossbeam;
 use rand;
-use thread_scoped;
 
 use coefs::Coefficients;
 use consts::SAMPLES_PER_FRAME;
@@ -74,30 +73,24 @@ impl IMBEDecoder {
         let vbase = PhaseBase::new(&params, &self.prev);
         let vphase = Phase::new(&vbase, &params, &self.prev, &voice, rand::weak_rng());
 
-        {
+        crossbeam::scope(|scope| {
             let unvoiced = Arc::new(Unvoiced::new(&udft, &self.prev.unvoiced));
             let voiced = Arc::new(Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice));
 
-            let mut threads = buf.chunks_mut(SAMPLES_PER_THREAD).enumerate().map(|(i, chunk)| {
+            for (i, chunk) in buf.chunks_mut(SAMPLES_PER_THREAD).enumerate() {
                 let u = unvoiced.clone();
                 let v = voiced.clone();
 
                 let start = i * SAMPLES_PER_THREAD;
                 let stop = start + SAMPLES_PER_THREAD;
 
-                unsafe {
-                    thread_scoped::scoped(move || {
-                        (start..stop)
-                            .map(|n| u.get(n) + v.get(n))
-                            .collect_slice(&mut chunk[..]);
-                    })
-                }
-            }).collect::<ArrayVec<[thread_scoped::JoinGuard<()>; THREADS]>>();
-
-            for thread in threads.drain(..) {
-                thread.join();
+                scope.spawn(move || {
+                    (start..stop)
+                        .map(|n| u.get(n) + v.get(n))
+                        .collect_slice(&mut chunk[..]);
+                });
             }
-        }
+        });
 
         self.prev = PrevFrame {
             params: params,
