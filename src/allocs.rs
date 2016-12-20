@@ -2,9 +2,9 @@
 
 use consts::{MIN_HARMONICS, NUM_HARMONICS, MAX_QUANTIZED_AMPS};
 
-pub fn allocs(harmonics: u32) -> (u8, &'static [u8]) {
+pub fn allocs(harmonics: u32) -> (&'static [u8], u8) {
     let idx = harmonics as usize - MIN_HARMONICS;
-    (MAX_BITS[idx], &BITS[idx][..])
+    (&BITS[idx][..], MAX_BITS[idx])
 }
 
 /// Each BITS[l][k] represents the bit allocation B<sub>m</sub>, where m = 3 + k, for the

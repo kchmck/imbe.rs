@@ -57,7 +57,7 @@ impl CoefBlock {
 
         let mut coefs = ArrayVec::new();
 
-        let (_, alloc) = allocs(params.harmonics);
+        let (alloc, _) = allocs(params.harmonics);
         let blocks = &AMPS_USED[params.harmonics as usize - MIN_HARMONICS];
 
         // C_i,1 = R_i.

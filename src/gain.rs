@@ -21,7 +21,7 @@ impl Gains {
         let mut gains = [0.0; NUM_GAINS];
 
         // Retrieve the B_m bit allocations for the current harmonics parameter.
-        let (_, alloc) = allocs(params.harmonics);
+        let (alloc, _) = allocs(params.harmonics);
         let steps = &STEPS[params.harmonics as usize - 9];
 
         // First gain value G_1 is found from b_2 index.

@@ -81,7 +81,7 @@ impl QuantizedAmplitudes {
         // provided by arrayvec.
         let mut amps: ArrayVec<[u32; 64]> = (1..params.harmonics).map(|_| 0).collect();
 
-        let (max, bits) = allocs(params.harmonics);
+        let (bits, max) = allocs(params.harmonics);
 
         // Iterate through bit levels, MSB to LSB.
         for idx in (0..max).rev() {
