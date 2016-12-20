@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 
+use map_in_place::MapInPlace;
 use num::complex::Complex32;
 use num::traits::Zero;
 use quad_osc::QuadOsc;
@@ -69,9 +70,8 @@ impl UnvoicedDFT {
             let power = energy / (upper - lower) as f32;
             let scale = SCALING_COEF * amplitude / power.sqrt();
 
-            for m in lower..upper {
-                dft[m] = scale * dft[m];
-            }
+            // Scale the band according to Eq 120.
+            (&mut dft[lower..upper]).map_in_place(|&x| scale * x);
         }
 
         UnvoicedDFT(dft)
