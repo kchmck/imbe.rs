@@ -87,7 +87,7 @@ impl IMBEDecoder {
                 scope.spawn(move || {
                     (start..stop)
                         .map(|n| u.get(n) + v.get(n))
-                        .collect_slice(&mut chunk[..]);
+                        .collect_slice_checked(&mut chunk[..]);
                 });
             }
         });
@@ -107,7 +107,7 @@ impl IMBEDecoder {
     }
 
     fn silence(&self, buf: &mut AudioBuf) {
-        (0..SAMPLES_PER_FRAME).map(|_| 0.0).collect_slice(&mut buf[..]);
+        (0..SAMPLES_PER_FRAME).map(|_| 0.0).collect_slice_checked(&mut buf[..]);
     }
 
     fn repeat(&self, buf: &mut AudioBuf) {
@@ -124,7 +124,7 @@ impl IMBEDecoder {
 
         (0..SAMPLES_PER_FRAME)
             .map(|n| unvoiced.get(n) + voiced.get(n))
-            .collect_slice(&mut buf[..]);
+            .collect_slice_checked(&mut buf[..]);
     }
 }
 
