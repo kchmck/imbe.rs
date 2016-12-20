@@ -2,6 +2,8 @@
 
 use consts::{MIN_HARMONICS, NUM_HARMONICS, MAX_QUANTIZED_AMPS};
 
+/// Retrieve the set of quantized amplitude bit allocations B<sub>m</sub> and
+/// max(B<sub>m</sub>) for the given harmonics parameter L.
 pub fn allocs(harmonics: u32) -> (&'static [u8], u8) {
     let idx = harmonics as usize - MIN_HARMONICS;
     (&BITS[idx][..], MAX_BITS[idx])
