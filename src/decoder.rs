@@ -72,7 +72,7 @@ impl IMBEDecoder {
 
         let udft = UnvoicedDFT::new(&params, &voice, &enhanced, rand::weak_rng());
         let vbase = PhaseBase::new(&params, &self.prev);
-        let vphase = Phase::new(&params, &self.prev, &voice, &vbase, rand::weak_rng());
+        let vphase = Phase::new(&vbase, &params, &self.prev, &voice, rand::weak_rng());
 
         {
             let unvoiced = Arc::new(Unvoiced::new(&udft, &self.prev.unvoiced));
@@ -113,18 +113,18 @@ impl IMBEDecoder {
         };
     }
 
-    fn silence(&self, buf: &mut [f32; SAMPLES_PER_FRAME]) {
+    fn silence(&self, buf: &mut SampleBuf) {
         (0..SAMPLES_PER_FRAME).map(|_| 0.0).collect_slice(&mut buf[..]);
     }
 
-    fn repeat(&self, buf: &mut [f32; SAMPLES_PER_FRAME]) {
+    fn repeat(&self, buf: &mut SampleBuf) {
         let params = self.prev.params.clone();
         let voice = self.prev.voice.clone();
         let enhanced = self.prev.enhanced.clone();
 
         let udft = UnvoicedDFT::new(&params, &voice, &enhanced, rand::weak_rng());
         let vbase = PhaseBase::new(&params, &self.prev);
-        let vphase = Phase::new(&params, &self.prev, &voice, &vbase, rand::weak_rng());
+        let vphase = Phase::new(&vbase, &params, &self.prev, &voice, rand::weak_rng());
 
         let unvoiced = Unvoiced::new(&udft, &self.prev.unvoiced);
         let voiced = Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice);
