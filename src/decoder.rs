@@ -9,7 +9,7 @@ use coefs::Coefficients;
 use consts::SAMPLES_PER_FRAME;
 use descramble::{descramble, Bootstrap};
 use enhance::{self, EnhancedSpectrals, FrameEnergy, EnhanceErrors};
-use frame::ReceivedFrame;
+use frame::{AudioBuf, ReceivedFrame};
 use gain::Gains;
 use params::BaseParams;
 use prev::PrevFrame;
@@ -34,7 +34,7 @@ impl IMBEDecoder {
         }
     }
 
-    pub fn decode(&mut self, frame: ReceivedFrame, buf: &mut [f32; SAMPLES_PER_FRAME]) {
+    pub fn decode(&mut self, frame: ReceivedFrame, buf: &mut AudioBuf) {
         let period = match Bootstrap::new(&frame.chunks) {
             Bootstrap::Period(p) => p,
             Bootstrap::Invalid => {
@@ -113,11 +113,11 @@ impl IMBEDecoder {
         };
     }
 
-    fn silence(&self, buf: &mut SampleBuf) {
+    fn silence(&self, buf: &mut AudioBuf) {
         (0..SAMPLES_PER_FRAME).map(|_| 0.0).collect_slice(&mut buf[..]);
     }
 
-    fn repeat(&self, buf: &mut SampleBuf) {
+    fn repeat(&self, buf: &mut AudioBuf) {
         let params = self.prev.params.clone();
         let voice = self.prev.voice.clone();
         let enhanced = self.prev.enhanced.clone();

@@ -1,5 +1,7 @@
 //! Received IMBE voice frame.
 
+use consts::SAMPLES_PER_FRAME;
+
 /// Represents the bit vectors u<sub>0</sub>, ..., u<sub>7</sub>, in that order.
 pub type Chunks = [u32; 8];
 
@@ -38,3 +40,6 @@ impl ReceivedFrame {
         }
     }
 }
+
+/// Audio samples in a decoded voice frame.
+pub type AudioBuf = [f32; SAMPLES_PER_FRAME];
