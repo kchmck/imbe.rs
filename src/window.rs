@@ -246,6 +246,9 @@ static WINDOW_SYNTHESIS: [f32; 211] = [
     0.00000,
 ];
 
+/// Energy of speech synthesis window.
+pub const ENERGY_SYNTHESIS: f32 = 143.3399810791015625;
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -265,5 +268,11 @@ mod test {
         assert_eq!(w.get(105), 0.0);
         assert_eq!(w.get(106), 0.0);
         assert_eq!(w.get(200), 0.0);
+    }
+
+    #[test]
+    fn verify_window_energy() {
+        let e = WINDOW_SYNTHESIS.iter().fold(0.0, |sum, &x| sum + x.powi(2));
+        assert_eq!(e, ENERGY_SYNTHESIS);
     }
 }

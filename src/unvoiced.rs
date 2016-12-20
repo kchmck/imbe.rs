@@ -48,7 +48,7 @@ impl UnvoicedDFT {
         -> UnvoicedDFT
     {
         let mut dft = [Complex32::default(); DFT_HALF];
-        let gaus = Normal::new(0.0, (DFT_HALF as f64).sqrt());
+        let gaus = Normal::new(0.0, (window::ENERGY_SYNTHESIS / 2.0).sqrt() as f64);
 
         for (l, &amplitude) in enhanced.iter().enumerate() {
             let l = l + 1;
