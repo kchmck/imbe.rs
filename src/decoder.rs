@@ -1,3 +1,5 @@
+//! Decode IMBE frames into an audio signal.
+
 use std::sync::Arc;
 
 use collect_slice::CollectSlice;
@@ -21,22 +23,26 @@ const THREADS: usize = 4;
 /// Number of samples to process in each thread.
 const SAMPLES_PER_THREAD: usize = SAMPLES_PER_FRAME / THREADS;
 
-
+/// Decodes a stream of IMBE frames.
 pub struct IMBEDecoder {
+    /// Tracks saved parameters across frames.
     prev: PrevFrame,
 }
 
 impl IMBEDecoder {
+    /// Create a new `IMBEDecoder` in the default state.
     pub fn new() -> IMBEDecoder {
         IMBEDecoder {
             prev: PrevFrame::default(),
         }
     }
 
+    /// Decode the given frame into the given audio sample buffer.
     pub fn decode(&mut self, frame: ReceivedFrame, buf: &mut AudioBuf) {
         let period = match Bootstrap::new(&frame.chunks) {
             Bootstrap::Period(p) => p,
             Bootstrap::Invalid => {
+                // Repeat previous frame on invalid period [p46].
                 self.repeat(buf);
                 return;
             },
@@ -84,6 +90,7 @@ impl IMBEDecoder {
                 let start = i * SAMPLES_PER_THREAD;
                 let stop = start + SAMPLES_PER_THREAD;
 
+                // Compute Eq 142 for this chunk.
                 scope.spawn(move || {
                     (start..stop)
                         .map(|n| u.get(n) + v.get(n))
@@ -92,6 +99,7 @@ impl IMBEDecoder {
             }
         });
 
+        // Save current parameters.
         self.prev = PrevFrame {
             params: params,
             spectrals: spectrals,
@@ -106,11 +114,14 @@ impl IMBEDecoder {
         };
     }
 
+    /// Fill the given audio buffer with silence.
     fn silence(&self, buf: &mut AudioBuf) {
         (0..SAMPLES_PER_FRAME).map(|_| 0.0).collect_slice_checked(&mut buf[..]);
     }
 
+    /// Repeat the previous frame into the given audio buffer.
     fn repeat(&self, buf: &mut AudioBuf) {
+        // Apply Eqs 99 through 104.
         let params = self.prev.params.clone();
         let voice = self.prev.voice.clone();
         let enhanced = self.prev.enhanced.clone();
@@ -122,6 +133,7 @@ impl IMBEDecoder {
         let unvoiced = Unvoiced::new(&udft, &self.prev.unvoiced);
         let voiced = Voiced::new(&params, &self.prev, &vphase, &enhanced, &voice);
 
+        // Repeat frame using previous parameters [p47].
         (0..SAMPLES_PER_FRAME)
             .map(|n| unvoiced.get(n) + voiced.get(n))
             .collect_slice_checked(&mut buf[..]);
@@ -135,6 +147,7 @@ mod test {
 
     #[test]
     fn verify_threads() {
+        // Verify samples are split cleanly over threads.
         assert!(SAMPLES_PER_FRAME % THREADS == 0);
     }
 }
