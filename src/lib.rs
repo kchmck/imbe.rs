@@ -13,7 +13,7 @@ extern crate rand;
 pub mod allocs;
 pub mod coefs;
 pub mod consts;
-pub mod decoder;
+pub mod decode;
 pub mod descramble;
 pub mod enhance;
 pub mod frame;
@@ -26,5 +26,5 @@ pub mod unvoiced;
 pub mod voiced;
 pub mod window;
 
-pub use decoder::IMBEDecoder;
+pub use decode::IMBEDecoder;
 pub use frame::ReceivedFrame;
