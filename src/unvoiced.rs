@@ -116,7 +116,7 @@ pub struct UnvoicedDFT([Complex32; DFT_HALF]);
 impl UnvoicedDFT {
     /// Construct a new `UnvoicedDFT` from the given frame parameters and noise generator.
     pub fn new<R: Rng>(params: &BaseParams, voice: &VoiceDecisions,
-                       enhanced: &EnhancedSpectrals, mut rng: R)
+                       amps: &EnhancedSpectrals, mut rng: R)
         -> Self
     {
         // DFT values default to 0 according to Eqs 119 and 124.
@@ -125,7 +125,7 @@ impl UnvoicedDFT {
         // Create a Gaussian distribution with mean μ = 0 and variance σ^2 = E_w / 2.
         let gaus = Normal::new(0.0, (window::ENERGY_SYNTHESIS / 2.0).sqrt() as f64);
 
-        for (l, &amplitude) in enhanced.iter().enumerate() {
+        for (l, &amplitude) in amps.iter().enumerate() {
             let l = l + 1;
 
             if voice.is_voiced(l) {
