@@ -109,6 +109,11 @@ impl EnhancedSpectrals {
         let mut enhanced = spectrals.iter().enumerate().map(|(l, &m)| {
             let l = l + 1;
 
+            // Handle fast-path case in Eq 108.
+            if 8 * l as u32 <= params.harmonics {
+                return m;
+            }
+
             // Compute Eq 107.
             let weight = m.sqrt() * (
                 0.96 * PI * (
@@ -118,11 +123,7 @@ impl EnhancedSpectrals {
             ).powf(0.25);
 
             // Scale current spectral amplitude according to Eq 108.
-            if 8 * l as u32 <= params.harmonics {
-                m
-            } else {
-                m * weight.max(0.5).min(1.2)
-            }
+            m * weight.max(0.5).min(1.2)
         }).collect::<ArrayVec<[f32; MAX_HARMONICS]>>();
 
         // Compute root ratio of energies according to Eq 109.
