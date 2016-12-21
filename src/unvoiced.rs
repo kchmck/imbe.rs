@@ -125,7 +125,7 @@ impl UnvoicedDFT {
         // Create a Gaussian distribution with mean μ = 0 and variance σ^2 = E_w / 2.
         let gaus = Normal::new(0.0, (window::ENERGY_SYNTHESIS / 2.0).sqrt() as f64);
 
-        for (l, &amplitude) in amps.iter().enumerate() {
+        for (l, &amp) in amps.iter().enumerate() {
             let l = l + 1;
 
             if voice.is_voiced(l) {
@@ -148,7 +148,7 @@ impl UnvoicedDFT {
             // Compute power of current band according to Eq 120.
             let power = energy / (upper - lower) as f32;
             // Compute scale for current enhanced spectral amplitude according to Eq 120.
-            let scale = SCALING_COEF * amplitude / power.sqrt();
+            let scale = SCALING_COEF * amp / power.sqrt();
 
             // Scale the band according to Eq 120.
             (&mut dft[lower..upper]).map_in_place(|&x| scale * x);
