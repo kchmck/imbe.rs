@@ -1,3 +1,5 @@
+//! Decode the Improved Multi-Band Excitation (IMBE) digital voice codec.
+
 #![feature(inclusive_range_syntax)]
 
 extern crate arrayvec;
