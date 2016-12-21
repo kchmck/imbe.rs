@@ -131,4 +131,25 @@ mod test {
             assert_eq!(allocs.iter().max().unwrap(), &max);
         }
     }
+
+    #[test]
+    fn test_allocs() {
+        // Couple verifications from Annex F/G
+
+        let (bits, max) = allocs(13);
+        assert_eq!(bits, &[
+            7, 7, 7, 6, 6, 7, 7, 6, 5, 4, 3, 3,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ][..]);
+        assert_eq!(max, 7);
+
+        let (bits, max) = allocs(33);
+        assert_eq!(bits, &[
+            4, 3, 3, 3, 3, 3, 3, 2, 2, 3, 3, 2, 2, 3, 2, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1,
+            1, 2, 1, 1, 1, 1,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ][..]);
+        assert_eq!(max, 4);
+    }
 }
