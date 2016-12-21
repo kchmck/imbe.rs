@@ -92,7 +92,7 @@ impl Default for Phase {
 pub struct Voiced<'a, 'b, 'c, 'd> {
     prev: &'a PrevFrame,
     phase: &'b Phase,
-    enhanced: &'c EnhancedSpectrals,
+    amps: &'c EnhancedSpectrals,
     voice: &'d VoiceDecisions,
     /// Synthesis window w<sub>s</sub> for combining voiced/unvoiced frames.
     window: window::Window,
@@ -104,13 +104,13 @@ pub struct Voiced<'a, 'b, 'c, 'd> {
 
 impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
     pub fn new(params: &BaseParams, prev: &'a PrevFrame, phase: &'b Phase,
-               enhanced: &'c EnhancedSpectrals, voice: &'d VoiceDecisions)
+               amps: &'c EnhancedSpectrals, voice: &'d VoiceDecisions)
         -> Self
     {
         Voiced {
             prev: prev,
             phase: phase,
-            enhanced: enhanced,
+            amps: amps,
             voice: voice,
             window: window::synthesis(),
             fundamental: params.fundamental,
@@ -138,7 +138,7 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
     /// Compute s<sub>v,l</sub>(n) for a voiced current frame and unvoiced previous frame.
     fn sig_cur(&self, l: usize, n: isize) -> f32 {
         // Compute Eq 132.
-        self.window.get(n - SAMPLES_PER_FRAME as isize) * self.enhanced.get(l) * (
+        self.window.get(n - SAMPLES_PER_FRAME as isize) * self.amps.get(l) * (
             self.fundamental * (n - SAMPLES_PER_FRAME as isize) as f32 * l as f32 +
                 self.phase.get(l)
         ).cos()
