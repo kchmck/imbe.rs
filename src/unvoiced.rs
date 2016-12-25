@@ -86,7 +86,7 @@ use std::f32::consts::PI;
 use map_in_place::MapInPlace;
 use num::complex::Complex32;
 use num::traits::Zero;
-use quad_osc::QuadOsc;
+use iq_osc::IQOsc;
 use rand::distributions::IndependentSample;
 use rand::distributions::normal::Normal;
 use rand::Rng;
@@ -164,7 +164,7 @@ impl UnvoicedDFT {
             return 0.0;
         }
 
-        let mut osc = QuadOsc::new(0.0, 2.0 / IDFT_SIZE as f32 * PI * n as f32);
+        let mut osc = IQOsc::new(0.0, 2.0 / IDFT_SIZE as f32 * PI * n as f32);
 
         2.0 / IDFT_SIZE as f32 * self.0.iter().map(|x| {
             let (sin, cos) = osc.next();

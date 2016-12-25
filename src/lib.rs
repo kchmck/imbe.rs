@@ -7,7 +7,7 @@ extern crate collect_slice;
 extern crate crossbeam;
 extern crate map_in_place;
 extern crate num;
-extern crate quad_osc;
+extern crate iq_osc;
 extern crate rand;
 
 pub mod allocs;
