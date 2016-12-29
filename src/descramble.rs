@@ -59,7 +59,7 @@ impl Bootstrap {
 /// Compute the 8-bit quantized period b<sub>0</sub> from the given u<sub>0</sub>, ...,
 /// s<sub>7</sub>.
 fn period(chunks: &Chunks) -> u8 {
-    // Concatenate MSBs of u_0 with bits 2 and 1 of u_7 [p39].
+    // Concatenate 6 MSBs of u_0 with bits 2 and 1 of u_7 [p39].
     (chunks[0] >> 4) as u8 & 0b11111100 | (chunks[7] >> 1) as u8 & 0b11
 }
 
