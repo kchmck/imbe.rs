@@ -24,15 +24,15 @@ const THREADS: usize = 4;
 const SAMPLES_PER_THREAD: usize = SAMPLES_PER_FRAME / THREADS;
 
 /// Decodes a stream of IMBE frames.
-pub struct IMBEDecoder {
+pub struct ImbeDecoder {
     /// Tracks saved parameters across frames.
     prev: PrevFrame,
 }
 
-impl IMBEDecoder {
-    /// Create a new `IMBEDecoder` in the default state.
-    pub fn new() -> IMBEDecoder {
-        IMBEDecoder {
+impl ImbeDecoder {
+    /// Create a new `ImbeDecoder` in the default state.
+    pub fn new() -> ImbeDecoder {
+        ImbeDecoder {
             prev: PrevFrame::default(),
         }
     }

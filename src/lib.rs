@@ -26,5 +26,5 @@ pub mod unvoiced;
 pub mod voiced;
 pub mod window;
 
-pub use decode::IMBEDecoder;
+pub use decode::ImbeDecoder;
 pub use frame::ReceivedFrame;
