@@ -111,10 +111,10 @@ const DFT_HALF: usize = DFT_SIZE / 2;
 const IDFT_HALF: usize = IDFT_SIZE / 2;
 
 /// Constructs unvoiced DFT/IDFT.
-pub struct UnvoicedDFT([Complex32; DFT_HALF]);
+pub struct UnvoicedDft([Complex32; DFT_HALF]);
 
-impl UnvoicedDFT {
-    /// Construct a new `UnvoicedDFT` from the given frame parameters and noise generator.
+impl UnvoicedDft {
+    /// Construct a new `UnvoicedDft` from the given frame parameters and noise generator.
     pub fn new<R: Rng>(params: &BaseParams, voice: &VoiceDecisions,
                        amps: &EnhancedSpectrals, mut rng: R)
         -> Self
@@ -154,7 +154,7 @@ impl UnvoicedDFT {
             (&mut dft[lower..upper]).map_in_place(|&x| scale * x);
         }
 
-        UnvoicedDFT(dft)
+        UnvoicedDft(dft)
     }
 
     /// Compute the IDFT u<sub>w</sub>(n) at the given point n.
@@ -173,21 +173,21 @@ impl UnvoicedDFT {
     }
 }
 
-impl Default for UnvoicedDFT {
-    /// Create a new `UnvoicedDFT` in the default state.
+impl Default for UnvoicedDft {
+    /// Create a new `UnvoicedDft` in the default state.
     fn default() -> Self {
         // By default all IDFT values are zero [p64]. Setting the DFT values to zero will
         // derive this effect.
-        UnvoicedDFT([Complex32::zero(); DFT_HALF])
+        UnvoicedDft([Complex32::zero(); DFT_HALF])
     }
 }
 
 /// Synthesizes unvoiced spectrum signal s<sub>uv</sub>(n).
 pub struct Unvoiced<'a, 'b> {
     /// Unvoiced DFT/IDFT for current frame.
-    cur: &'a UnvoicedDFT,
+    cur: &'a UnvoicedDft,
     /// Unvoiced DFT/IDFT for previous frame.
-    prev: &'b UnvoicedDFT,
+    prev: &'b UnvoicedDft,
     /// Synthesis window w<sub>s</sub>(n) for "weighted overlap add".
     window: window::Window,
 }
@@ -195,7 +195,7 @@ pub struct Unvoiced<'a, 'b> {
 impl<'a, 'b> Unvoiced<'a, 'b> {
     /// Create a new `Unvoiced` from the given unvoiced spectrums of the current and
     /// previous frames.
-    pub fn new(cur: &'a UnvoicedDFT, prev: &'b UnvoicedDFT) -> Self {
+    pub fn new(cur: &'a UnvoicedDft, prev: &'b UnvoicedDft) -> Self {
         Unvoiced {
             cur: cur,
             prev: prev,
@@ -335,7 +335,7 @@ mod test {
         amps.push(9.0);
         amps.push(18.0);
 
-        let dft = UnvoicedDFT::new(&p, &voice, &amps, XorShiftRng::new_unseeded());
+        let dft = UnvoicedDft::new(&p, &voice, &amps, XorShiftRng::new_unseeded());
 
         assert_eq!(dft.0[0], Complex32::zero());
         assert_eq!(dft.0[1], Complex32::zero());
@@ -792,7 +792,7 @@ mod test {
         amps.push(9.0);
         amps.push(18.0);
 
-        let dft = UnvoicedDFT::new(&p, &voice, &amps, XorShiftRng::new_unseeded());
+        let dft = UnvoicedDft::new(&p, &voice, &amps, XorShiftRng::new_unseeded());
         let uv = Unvoiced::new(&dft, &dft);
 
         assert!((uv.get(0) - 25.30613912637092255408788332715631).abs() < 1e-3);

@@ -15,7 +15,7 @@ use gain::Gains;
 use params::BaseParams;
 use prev::PrevFrame;
 use spectral::Spectrals;
-use unvoiced::{UnvoicedDFT, Unvoiced};
+use unvoiced::{UnvoicedDft, Unvoiced};
 use voiced::{Phase, PhaseBase, Voiced};
 
 /// Number of threads to spin up per frame.
@@ -75,7 +75,7 @@ impl ImbeDecoder {
         let amp_thresh = enhance::amp_thresh(&errors, self.prev.amp_thresh);
         enhance::smooth(&mut enhanced, &mut voice, &errors, &energy, amp_thresh);
 
-        let udft = UnvoicedDFT::new(&params, &voice, &enhanced, rand::weak_rng());
+        let udft = UnvoicedDft::new(&params, &voice, &enhanced, rand::weak_rng());
         let vbase = PhaseBase::new(&params, &self.prev);
         let vphase = Phase::new(&vbase, &params, &self.prev, &voice, rand::weak_rng());
 
@@ -126,7 +126,7 @@ impl ImbeDecoder {
         let voice = self.prev.voice.clone();
         let enhanced = self.prev.enhanced.clone();
 
-        let udft = UnvoicedDFT::new(&params, &voice, &enhanced, rand::weak_rng());
+        let udft = UnvoicedDft::new(&params, &voice, &enhanced, rand::weak_rng());
         let vbase = PhaseBase::new(&params, &self.prev);
         let vphase = Phase::new(&vbase, &params, &self.prev, &voice, rand::weak_rng());
 

@@ -4,7 +4,7 @@ use descramble::VoiceDecisions;
 use enhance::{FrameEnergy, EnhancedSpectrals};
 use params::BaseParams;
 use spectral::Spectrals;
-use unvoiced::UnvoicedDFT;
+use unvoiced::UnvoicedDft;
 use voiced::{Phase, PhaseBase};
 
 /// Various parameters saved from the previous frame, used when constructing the current
@@ -17,7 +17,7 @@ pub struct PrevFrame {
     pub err_rate: f32,
     pub energy: FrameEnergy,
     pub amp_thresh: f32,
-    pub unvoiced: UnvoicedDFT,
+    pub unvoiced: UnvoicedDft,
     pub phase_base: PhaseBase,
     pub phase: Phase,
 }
@@ -36,7 +36,7 @@ impl Default for PrevFrame {
             energy: FrameEnergy::default(),
             // This value is arbitrary and not given in the standard.
             amp_thresh: 0.0,
-            unvoiced: UnvoicedDFT::default(),
+            unvoiced: UnvoicedDft::default(),
             phase_base: PhaseBase::default(),
             phase: Phase::default(),
         }
