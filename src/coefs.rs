@@ -26,9 +26,9 @@ impl Coefficients {
         let mut cur = 8;
 
         // Generate blocks for 1 ≤ i ≤ 6.
-        for block in 1...6 {
+        for block in 1..=6 {
             let b = CoefBlock::new(block, cur, gains, amps, params);
-            coefs.extend((1...b.len()).map(|j| b.idct(j)));
+            coefs.extend((1..=b.len()).map(|j| b.idct(j)));
 
             // The first coefficient C_i,1 in each block doesn't count towards quantized
             // amplitude usage.
@@ -92,7 +92,7 @@ impl CoefBlock {
     pub fn idct(&self, j: usize) -> f32 {
         assert!(j >= 1 && j <= self.len());
 
-        self.0[0] + 2.0 * (2...self.len()).map(|k| {
+        self.0[0] + 2.0 * (2..=self.len()).map(|k| {
             self.0[k - 1] * (
                 PI * (k as f32 - 1.0) * (j as f32 - 0.5) / self.len() as f32
             ).cos()
@@ -195,7 +195,7 @@ mod tests {
     fn verify_amps() {
         // Verify the constaints on J_i [p33].
 
-        for l in 9...56 {
+        for l in 9..=56 {
             let amps = &AMPS_USED[l as usize - 9];
 
             let sum = amps.iter().fold(0, |sum, &x| sum + x + 1);
@@ -203,7 +203,7 @@ mod tests {
 
             assert!(l / 6 <= amps[0] + 1);
 
-            for i in 0...4 {
+            for i in 0..=4 {
                 assert!(amps[i] <= amps[i + 1]);
             }
 

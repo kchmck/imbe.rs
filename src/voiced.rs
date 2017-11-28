@@ -27,7 +27,7 @@ impl PhaseBase {
             SAMPLES_PER_FRAME as f32 / 2.0;
 
         // Compute Eq 139.
-        (1...MAX_HARMONICS).map(|l| {
+        (1..=MAX_HARMONICS).map(|l| {
             prev.phase_base.get(l) + scale * l as f32
         }).collect_slice_checked(&mut base[..]);
 
@@ -159,7 +159,7 @@ impl<'a, 'b, 'c, 'd> Voiced<'a, 'b, 'c, 'd> {
         debug_assert!(n < SAMPLES_PER_FRAME);
 
         // Compute Eq 127
-        2.0 * (1...self.end)
+        2.0 * (1..=self.end)
             .map(|l| self.get_pair(l, n as isize))
             .fold(0.0, |s, x| s + x)
     }
@@ -192,7 +192,7 @@ mod test {
         let p = BaseParams::new(b.unwrap_period());
         let mut prev = PrevFrame::default();
 
-        for l in 1...56 {
+        for l in 1..=56 {
             prev.phase_base.0[l-1] = l as f32;
         }
 
@@ -280,7 +280,7 @@ mod test {
         let (_, voice, _) = descramble(&chunks, &p);
         let mut prev = PrevFrame::default();
 
-        for l in 1...56 {
+        for l in 1..=56 {
             prev.phase_base.0[l-1] = l as f32;
         }
 

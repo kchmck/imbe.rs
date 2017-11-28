@@ -313,7 +313,7 @@ mod tests {
         assert!(!voice.is_voiced(9));
         assert!(voice.is_voiced(10));
 
-        for l in 11...63 {
+        for l in 11..=63 {
             assert!(!voice.is_voiced(l));
         }
     }
@@ -353,7 +353,7 @@ mod tests {
         assert!(voice.is_voiced(15));
         assert!(voice.is_voiced(16));
 
-        for l in 17...63 {
+        for l in 17..=63 {
             assert!(!voice.is_voiced(l));
         }
     }

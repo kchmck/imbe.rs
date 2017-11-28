@@ -28,7 +28,7 @@ impl Gains {
         gains[0] = GAIN[gain_idx];
 
         // Compute G_2, ..., G_6.
-        (3...7).map(|m| {
+        (3..=7).map(|m| {
             let bits = alloc[m - 3];
             let step = steps[m - 3];
 
