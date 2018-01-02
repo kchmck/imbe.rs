@@ -9,6 +9,6 @@ arrayvec = "^0.3.12"
 collect_slice = "^1.0.0"
 crossbeam = "^0.2.10"
 map_in_place = {version = "^1.0.0", git = "https://github.com/kchmck/map_in_place.rs"}
-num = "^0.1.34"
 iq_osc = {version = "^3.0.0", git = "https://github.com/kchmck/iq_osc.rs"}
+num = "^0.1.34"
 rand = "^0.3"
