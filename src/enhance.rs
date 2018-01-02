@@ -4,7 +4,7 @@ use std;
 use std::f32::consts::PI;
 
 use arrayvec::ArrayVec;
-use map_in_place::MapInPlace;
+use slice_mip::MapInPlace;
 
 use consts::MAX_HARMONICS;
 use frame::Errors;

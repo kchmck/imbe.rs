@@ -83,7 +83,7 @@
 
 use std::f32::consts::PI;
 
-use map_in_place::MapInPlace;
+use slice_mip::MapInPlace;
 use num::complex::Complex32;
 use num::traits::Zero;
 use iq_osc::IQOsc;

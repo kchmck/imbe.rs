@@ -5,7 +5,7 @@
 extern crate arrayvec;
 extern crate collect_slice;
 extern crate crossbeam;
-extern crate map_in_place;
+extern crate slice_mip;
 extern crate num;
 extern crate iq_osc;
 extern crate rand;

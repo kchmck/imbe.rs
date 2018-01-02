@@ -4,7 +4,7 @@ use std::cmp::max;
 use std::f32::consts::PI;
 
 use collect_slice::CollectSlice;
-use map_in_place::MapInPlace;
+use slice_mip::MapInPlace;
 use rand::Rng;
 
 use consts::{SAMPLES_PER_FRAME, MAX_HARMONICS};
